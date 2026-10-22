@@ -74,9 +74,26 @@ Conan editable packages.
 
 ## Run benchmarks
 
-Benchmarks use a separate Conan application package. Build Quickheap with
-`conan create .`, then follow
-[benchmark build and run instructions](benchmark/README.md).
+Local performance checks use Catch2 benchmarks in `test/`. A normal test
+build creates `quickheap_benchmark`. Run benchmarks explicitly.
+
+```sh
+build/Release/test/quickheap_benchmark '[!benchmark]'
+build/Release/test/quickheap_benchmark '[!benchmark]' --section 1024 \
+    --benchmark-samples 1 --benchmark-warmup-time 0 --benchmark-no-analysis
+```
+
+Eight workloads cover signed and unsigned 32-bit and 64-bit keys with
+key-only and key/value Quickheap. Catch2 controls calibration, warmup, and
+samples. Input generation, setup, output validation, and destruction stay
+outside timing. Each calibrated iteration uses fresh queue and output state.
+Benchmark tests use hidden `[!benchmark]` tags and run separately from CTest
+correctness checks. `BUILD_TESTING=OFF` excludes local test targets.
+
+Algorithm and configuration comparisons use the separate Conan application
+under `benchmark/`. Build Quickheap with `conan create .`, then follow
+[comparison build and run instructions](benchmark/README.md). The main
+package builds and tests without the `benchmark/` directory.
 
 ## Verify the port
 

@@ -2,7 +2,8 @@
 
 Native runners port workloads, competitors, and development experiments from
 [upstream `quickheap-dev/bench`](https://github.com/RagnarGrootKoerkamp/quickheap/tree/a9f2518d9ed452130361cfe1681c68625a68ab35/quickheap-dev/bench).
-Catch2 benchmarks remain available through `quickheap_benchmark`. All build
+Local Catch2 performance checks belong to the main package's `test/` directory.
+This package owns algorithm and configuration comparisons. All build
 inputs, tests, dependencies, and experimental kernels belong to this directory.
 Native runners write CSV to standard output and diagnostics to standard error.
 `--help` lists each runner's options. `quickheap_bench --list` lists enabled
@@ -40,7 +41,6 @@ Timing includes queue replay. Input generation, queue construction, setup,
 output validation, and destruction run outside timing. Each measured repeat
 uses fresh state after untimed warmup. `--repeat` defaults to three.
 Native runners use one warmup; `quickheap_bench --warmup N` overrides its count.
-Catch2 controls its own warmup and samples.
 
 Synthetic `ops` counts push/pop pairs. Push-heavy workloads include their
 final drain in the timed replay, so each replay has equal push and pop totals.
@@ -79,7 +79,7 @@ CSR construction, scratch allocation, and result validation stay outside
 timing. `push_count` and `pop_count` count actual queue calls. Relaxation may
 insert multiple entries per vertex, so these counts differ from graph edges.
 
-## Run development experiments
+## Compare algorithm configurations
 
 Select an experiment family with `quickheap_experiments`.
 
@@ -167,9 +167,9 @@ are `ns/element`, dividing one partition's elapsed time by input size `n`.
 
 | Upstream feature | C++ port |
 | --- | --- |
-| Eight synthetic workloads | Shared native and Catch2 replay |
+| Eight synthetic workloads | Native comparison replay |
 | Signed and unsigned 32-bit and 64-bit keys | All four types |
-| Key/value Quickheap | Native and Catch2 synthetic workloads |
+| Key/value Quickheap | Native synthetic comparisons |
 | Binary, d-ary, weak, radix competitors | Native benchmark adapters |
 | Boost heap competitors | Optional build dependency |
 | SequenceHeap, S3Q, original Quickheap | Optional pinned external sources |

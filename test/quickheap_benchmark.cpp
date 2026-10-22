@@ -1,11 +1,11 @@
-#include "workloads.hpp"
+#include "benchmark_workloads.hpp"
 
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 namespace {
-using namespace quickheap::bench;
+using namespace quickheap::test_bench;
 
 template <typename Q, typename T>
 void run_benchmark(const std::string &name, const Plan<T> &plan) {
@@ -31,13 +31,11 @@ template <typename T> void run_size(const WorkloadInfo &workload, std::size_t n)
         " pushes=" + std::to_string(plan.timed.pushes.size()) +
         " pops=" + std::to_string(plan.timed.expected_pops.size());
     run_benchmark<KeyQuickHeap<T>>(prefix + "quickheap" + suffix, plan);
-    run_benchmark<StdKeyHeap<T>>(prefix + "std_priority_queue" + suffix, plan);
     run_benchmark<KvQuickHeap<T>>(prefix + "kv_quickheap" + suffix, plan);
-    run_benchmark<StdKvHeap<T>>(prefix + "kv_std_priority_queue" + suffix, plan);
 }
 
 #define REGISTER_WORKLOAD(kind)                                                \
-    TEMPLATE_TEST_CASE(#kind, "[benchmark]", std::int32_t, std::int64_t,         \
+    TEMPLATE_TEST_CASE(#kind, "[!benchmark]", std::int32_t, std::int64_t,         \
                        std::uint32_t, std::uint64_t) {                          \
         const auto &workload = workloads[static_cast<std::size_t>(Workload::kind)]; \
         for (std::size_t n = 1 << 10;                                          \

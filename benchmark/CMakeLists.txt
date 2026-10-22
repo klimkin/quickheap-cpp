@@ -10,7 +10,6 @@ option(QUICKHEAP_BENCH_BOOST "Build Boost benchmark competitors" OFF)
 
 find_package(quickheap REQUIRED CONFIG)
 find_package(highway REQUIRED CONFIG)
-find_package(Catch2 3.16 REQUIRED CONFIG)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-Wall -Wextra -Werror)
@@ -18,9 +17,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         add_link_options(-Wl,--fatal-warnings)
     endif()
 endif()
-
-add_executable(quickheap_benchmark quickheap_benchmark.cpp)
-target_link_libraries(quickheap_benchmark PRIVATE quickheap::quickheap Catch2::Catch2WithMain)
 
 add_library(quickheap_bench_graph_support STATIC graph.cpp)
 target_link_libraries(quickheap_bench_graph_support PUBLIC quickheap::quickheap)
@@ -46,6 +42,7 @@ target_link_libraries(quickheap_bench PRIVATE quickheap_bench_backend)
 target_link_libraries(quickheap_bench_graph PRIVATE quickheap_bench_backend)
 
 if(BUILD_TESTING)
+    find_package(Catch2 3.16 REQUIRED CONFIG)
     add_executable(quickheap_bench_tests graph_test.cpp workload_test.cpp experimental_heap_test.cpp competitor_test.cpp)
     target_link_libraries(quickheap_bench_tests PRIVATE quickheap_bench_graph_support Catch2::Catch2WithMain)
     target_link_libraries(quickheap_bench_tests PRIVATE quickheap_bench_backend)
@@ -73,13 +70,6 @@ if(QUICKHEAP_BENCH_BOOST)
     endif()
 endif()
 if(BUILD_TESTING)
-    add_test(NAME quickheap_benchmark
-        COMMAND quickheap_benchmark
-            "[benchmark]"
-            --section 1024
-            --benchmark-samples 1
-            --benchmark-warmup-time 0
-            --benchmark-no-analysis)
     add_test(NAME quickheap_bench_contracts COMMAND quickheap_bench_tests)
     add_test(NAME quickheap_graph_smoke
         COMMAND quickheap_bench_graph ${CMAKE_CURRENT_SOURCE_DIR}/data/smoke.gr --repeat 1)
@@ -94,7 +84,7 @@ if(BUILD_TESTING)
     endforeach()
 endif()
 
-install(TARGETS quickheap_bench quickheap_bench_graph quickheap_experiments quickheap_benchmark
+install(TARGETS quickheap_bench quickheap_bench_graph quickheap_experiments
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(PROGRAMS run-all.sh DESTINATION ${CMAKE_INSTALL_DATADIR}/quickheap-bench)
 install(DIRECTORY data/ DESTINATION ${CMAKE_INSTALL_DATADIR}/quickheap-bench/data

@@ -39,12 +39,12 @@ class QuickHeapBenchmarkConan(ConanFile):
     def requirements(self):
         self.requires("quickheap/[^0.2]", headers=True, libs=True, run=True)
         self.requires("highway/[^1.4]", transitive_headers=False)
-        self.requires("catch2/[^3.16]", transitive_headers=False)
         if self.options.boost:
             self.requires("boost/[^1.90]", transitive_headers=False)
 
     def build_requirements(self):
         self.tool_requires("cmake/[>=4.0]")
+        self.test_requires("catch2/[^3.16]")
 
     def validate(self):
         check_min_cppstd(self, 20)

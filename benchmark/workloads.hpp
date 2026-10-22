@@ -35,26 +35,16 @@ enum class Workload {
 struct WorkloadInfo {
     Workload workload;
     std::string_view name;
-    int catch_max_log2;
 };
 inline constexpr std::array workloads = {
-    WorkloadInfo{Workload::HeapSort, "HeapSort", 20},
-    WorkloadInfo{Workload::MonotoneConstantSize, "MonotoneConstantSize", 20},
-    WorkloadInfo{Workload::RandomConstantSize, "RandomConstantSize", 20},
-    WorkloadInfo{Workload::MonotoneWiggle, "MonotoneWiggle", 18},
-    WorkloadInfo{Workload::RandomWiggle, "RandomWiggle", 18},
-    WorkloadInfo{Workload::GeometricMonotoneWiggle, "GeometricMonotoneWiggle", 18},
-    WorkloadInfo{Workload::WorstCaseDescending, "WorstCaseDescending", 20},
-    WorkloadInfo{Workload::MostlyPushDecreasing, "MostlyPushDecreasing", 20},
-};
-
-enum class HeapKind { QuickHeap, StdPriorityQueue, KvQuickHeap, KvStdPriorityQueue };
-struct HeapInfo { HeapKind heap; std::string_view name; bool exact_capacity; };
-inline constexpr std::array heaps = {
-    HeapInfo{HeapKind::QuickHeap, "quickheap", true},
-    HeapInfo{HeapKind::StdPriorityQueue, "std_priority_queue", false},
-    HeapInfo{HeapKind::KvQuickHeap, "kv_quickheap", true},
-    HeapInfo{HeapKind::KvStdPriorityQueue, "kv_std_priority_queue", false},
+    WorkloadInfo{Workload::HeapSort, "HeapSort"},
+    WorkloadInfo{Workload::MonotoneConstantSize, "MonotoneConstantSize"},
+    WorkloadInfo{Workload::RandomConstantSize, "RandomConstantSize"},
+    WorkloadInfo{Workload::MonotoneWiggle, "MonotoneWiggle"},
+    WorkloadInfo{Workload::RandomWiggle, "RandomWiggle"},
+    WorkloadInfo{Workload::GeometricMonotoneWiggle, "GeometricMonotoneWiggle"},
+    WorkloadInfo{Workload::WorstCaseDescending, "WorstCaseDescending"},
+    WorkloadInfo{Workload::MostlyPushDecreasing, "MostlyPushDecreasing"},
 };
 
 template <typename T> constexpr std::string_view key_name() {
