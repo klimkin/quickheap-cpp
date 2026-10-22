@@ -51,9 +51,9 @@ class QuickHeapConan(ConanFile):
 
     def build_requirements(self):
         self.tool_requires("cmake/[>=4.0]")
-        self.test_requires("gtest/[^1.15]")
+        self.test_requires("gtest/[>=1.15]")
         if self.options.with_benchmarks:
-            self.test_requires("benchmark/[^1.9]")
+            self.test_requires("benchmark/[>=1.9]")
 
     def validate(self):
         check_min_cppstd(self, 20)

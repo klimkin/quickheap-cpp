@@ -8,7 +8,8 @@ dispatch and a scalar build.
 ## Build and test
 
 Requires Conan 2, CMake 4, Ninja, and a C++20 compiler. Public C++ headers
-require C++17. Conan supplies Highway, GoogleTest, and Google Benchmark.
+support C++17 consumers. Conan profiles select build standard. Conan supplies
+Highway, GoogleTest, and Google Benchmark.
 
 ```sh
 conan build . -pr:h gcc-native -pr:b gcc-native-build --build=missing

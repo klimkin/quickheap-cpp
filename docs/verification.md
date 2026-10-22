@@ -12,13 +12,13 @@ entries, moves, null C arguments, and capacity retention.
 | Scalar Highway | 97 cases and 20 differential traces pass |
 | Native Highway | 20 Rust/Python/C++ differential traces pass |
 | GCC 15 ASan, UBSan, TSan | 97 cases pass under each sanitizer |
-| Static/shared Conan packages | External C and C++17 callers pass |
-| Editable package | External C and C++17 callers pass |
+| Static/shared Conan packages | External C and C++ callers pass |
+| Editable package | External C and C++ callers pass |
 | Benchmark smoke | 64 cases execute with validated outputs |
 | Independent review | Correctness and package reviewers report no remaining defect; [decision trail](../.audit/port.tsv) records verdicts |
 | GCC 17 and Clang 24 | Native/scalar tests, differential traces, static/shared and editable consumers pass |
-| GCC 17 and Clang 24 ASan/UBSan/TSan | Local tests and packaged C/C++17 consumers pass |
-| Conan CMakeDeps | External C and C++17 callers require only Quickheap |
+| GCC 17 and Clang 24 ASan/UBSan/TSan | Local tests and packaged C/C++ consumers pass |
+| Conan CMakeDeps | External C and C++ callers require only Quickheap |
 | Natural-owner matrix | All 20 axes pass with fresh build trees, including 12 static/shared sanitizer axes |
 | Full-feature lockfile | Regenerated graph matches committed lockfile |
 | Compiler cache | Central profiles set C and C++ ccache launchers for both compiler families |
