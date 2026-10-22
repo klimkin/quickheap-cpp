@@ -29,7 +29,6 @@ class QuickHeapConan(ConanFile):
     }
     exports_sources = (
         "CMakeLists.txt",
-        "cmake/*",
         "include/*",
         "src/*",
         "test/*",
@@ -98,5 +97,3 @@ class QuickHeapConan(ConanFile):
         self.cpp_info.set_property("cmake_target_name", "quickheap::quickheap")
         if self.options.shared:
             self.cpp_info.defines = ["QUICKHEAP_SHARED=1"]
-        if not self.options.shared:
-            self.cpp_info.requires = ["highway::hwy"]

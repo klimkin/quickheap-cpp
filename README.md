@@ -64,10 +64,10 @@ find_package(quickheap REQUIRED CONFIG)
 target_link_libraries(app PRIVATE quickheap::quickheap)
 ```
 
-Conan packages and installed CMake exports provide `quickheap::quickheap`.
-Public headers do not expose Highway. Static linkage carries Highway's
-required libraries. Installed headers and libraries also support Conan
-editable packages.
+Conan's CMakeDeps generator provides `quickheap::quickheap` and propagates
+dependencies for static and shared packages. Consumers require only Quickheap.
+Public headers do not expose Highway. Installed headers and libraries support
+Conan editable packages.
 
 ## Run benchmarks
 

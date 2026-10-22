@@ -9,7 +9,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(GNUInstallDirs)
-include(CMakePackageConfigHelpers)
 include(CTest)
 
 option(QUICKHEAP_SCALAR "Build scalar Highway kernels only" OFF)
@@ -31,25 +30,3 @@ if(BUILD_TESTING)
 elseif(QUICKHEAP_BUILD_BENCHMARKS)
     message(FATAL_ERROR "Benchmarks require BUILD_TESTING=ON")
 endif()
-
-configure_package_config_file(
-    cmake/quickheap-config.cmake.in
-    ${PROJECT_BINARY_DIR}/quickheap-config.cmake
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/quickheap
-)
-write_basic_package_version_file(
-    ${PROJECT_BINARY_DIR}/quickheap-config-version.cmake
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY SameMajorVersion
-)
-
-install(EXPORT quickheapTargets
-    FILE quickheapTargets.cmake
-    NAMESPACE quickheap::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/quickheap
-)
-install(FILES
-    ${PROJECT_BINARY_DIR}/quickheap-config.cmake
-    ${PROJECT_BINARY_DIR}/quickheap-config-version.cmake
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/quickheap
-)

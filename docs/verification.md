@@ -18,7 +18,7 @@ entries, moves, null C arguments, and capacity retention.
 | Independent review | Correctness and package reviewers report no remaining defect; [decision trail](../.audit/port.tsv) records verdicts |
 | GCC 17 and Clang 24 | Native/scalar tests, differential traces, static/shared and editable consumers pass |
 | GCC 17 and Clang 24 ASan/UBSan/TSan | Local tests and packaged C/C++17 consumers pass |
-| Installed CMake config | External C and C++17 callers pass |
+| Conan CMakeDeps | External C and C++17 callers require only Quickheap |
 
 Independent reviewer reports additional scalar and AVX2 partition and pivot
 probes. Those probes were temporary review artifacts, not committed regression

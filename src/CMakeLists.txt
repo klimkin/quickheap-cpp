@@ -3,7 +3,6 @@ add_library(quickheap::quickheap ALIAS quickheap)
 set_target_properties(quickheap PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}
-    EXPORT_NAME quickheap
 )
 target_compile_features(quickheap PRIVATE cxx_std_20)
 target_include_directories(quickheap
@@ -17,9 +16,6 @@ target_compile_definitions(quickheap PRIVATE QUICKHEAP_BUILDING_LIBRARY=1)
 get_target_property(quickheap_type quickheap TYPE)
 if(quickheap_type STREQUAL "SHARED_LIBRARY")
     target_compile_definitions(quickheap PUBLIC QUICKHEAP_SHARED=1)
-    set(QUICKHEAP_STATIC OFF PARENT_SCOPE)
-else()
-    set(QUICKHEAP_STATIC ON PARENT_SCOPE)
 endif()
 if(QUICKHEAP_SCALAR)
     target_compile_definitions(quickheap PRIVATE HWY_COMPILE_ONLY_SCALAR=1)
@@ -27,7 +23,7 @@ else()
     target_compile_definitions(quickheap PRIVATE HWY_COMPILE_ALL_ATTAINABLE=1)
 endif()
 
-install(TARGETS quickheap EXPORT quickheapTargets
+install(TARGETS quickheap
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
