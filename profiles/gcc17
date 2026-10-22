@@ -1,0 +1,2 @@
+{% set GCC_VERSION = "17" %}
+{% include "gcc-native" %}

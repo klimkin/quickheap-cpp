@@ -1,0 +1,2 @@
+{% set CLANG_VERSION = "24" %}
+{% include "clang-native" %}

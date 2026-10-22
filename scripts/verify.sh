@@ -29,6 +29,10 @@ axes=(
     'gcc-asan gcc-native-asan Debug False True False'
     'gcc-ubsan gcc-native-ubsan Debug False False False'
     'gcc-tsan gcc-native-tsan Debug False False False'
+    'gcc-asan-shared gcc-native-asan Debug True False False'
+    'gcc-ubsan-shared gcc-native-ubsan Debug True False False'
+    'gcc-tsan-shared gcc-native-tsan Debug True False False'
+    'gcc-pinned gcc17 Release False False True'
 )
 
 if [[ -n ${CLANGXX:-} ]]; then
@@ -45,15 +49,36 @@ if [[ -n ${clang_available} ]]; then
         'clang-asan clang-native-asan Debug False True False'
         'clang-ubsan clang-native-ubsan Debug False False False'
         'clang-tsan clang-native-tsan Debug False False False'
+        'clang-asan-shared clang-native-asan Debug True False False'
+        'clang-ubsan-shared clang-native-ubsan Debug True False False'
+        'clang-tsan-shared clang-native-tsan Debug True False False'
+        'clang-pinned clang24 Release False False True'
     )
 else
-    printf 'Clang unavailable. Set CLANG and CLANGXX to enable Clang axes.\n' >&2
+    printf 'Clang unavailable. Activate the compiler before verification.\n' >&2
 fi
+
+selected=("$@")
+for requested in "${selected[@]}"; do
+    matches=0
+    for axis in "${axes[@]}"; do
+        if [[ ${axis%% *} == "${requested}" ]]; then
+            matches=$((matches + 1))
+        fi
+    done
+    if ((matches != 1)); then
+        printf 'Unknown axis requested: %s\n' "${requested}" >&2
+        exit 2
+    fi
+done
 
 run_axis() {
     local name=$1 profile=$2 build_type=$3 shared=$4 scalar=$5 benchmarks=$6
     local axis_dir="${build_root}/${name}"
     local host_profile="${profile}"
+    if [[ ${profile} == gcc17 || ${profile} == clang24 ]]; then
+        host_profile="${root_dir}/profiles/${profile}"
+    fi
 
     mkdir -p -- "${axis_dir}"
     printf 'Running %s with host profile %s and build profile %s\n' \
@@ -71,7 +96,9 @@ run_axis() {
         --lockfile=''
     )
 
-    conan build "${root_dir}" -of "${axis_dir}/local" "${args[@]}"
+    local local_dir
+    local_dir=$(mktemp -d "${axis_dir}/local.XXXXXX")
+    conan build "${root_dir}" -of "${local_dir}" "${args[@]}"
     local package_dir
     package_dir=$(mktemp -d "${axis_dir}/package.XXXXXX")
     cleanup_paths+=("${package_dir}")
@@ -82,7 +109,6 @@ run_axis() {
         --test-folder "${package_dir}/test_package"
 }
 
-selected=("$@")
 matched=0
 for axis in "${axes[@]}"; do
     read -r name profile build_type shared scalar benchmarks <<<"${axis}"
@@ -121,11 +147,12 @@ fi
 
 editable_dir="${build_root}/editable"
 mkdir -p -- "${editable_dir}"
+editable_local=$(mktemp -d "${editable_dir}/local.XXXXXX")
 conan editable add "${root_dir}" --name quickheap --version 0.2.0 \
-    -of "${editable_dir}/local"
+    -of "${editable_local}"
 editable_registered=1
 
-conan build "${root_dir}" -of "${editable_dir}/local" \
+conan build "${root_dir}" -of "${editable_local}" \
     -pr:h gcc-native -pr:b "${build_profile}" \
     -o:h 'quickheap/*:with_tests=True' --build=missing --lockfile=''
 consumer_dir=$(mktemp -d "${editable_dir}/consumer.XXXXXX")
