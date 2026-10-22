@@ -7,7 +7,6 @@ include(GNUInstallDirs)
 include(CTest)
 
 option(QUICKHEAP_SCALAR "Build scalar Highway kernels only" OFF)
-option(QUICKHEAP_BUILD_BENCHMARKS "Build and run benchmarks" OFF)
 
 find_package(highway REQUIRED CONFIG)
 

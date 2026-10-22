@@ -21,16 +21,16 @@ command -v conan >/dev/null
 command -v cmake >/dev/null
 
 axes=(
-    'gcc-release-static gcc-native Release False False True'
-    'gcc-release-shared gcc-native Release True False True'
-    'gcc-debug-scalar gcc-native Debug False True False'
-    'gcc-asan gcc-native-asan Debug False True False'
-    'gcc-ubsan gcc-native-ubsan Debug False False False'
-    'gcc-tsan gcc-native-tsan Debug False False False'
-    'gcc-asan-shared gcc-native-asan Debug True False False'
-    'gcc-ubsan-shared gcc-native-ubsan Debug True False False'
-    'gcc-tsan-shared gcc-native-tsan Debug True False False'
-    'gcc-pinned gcc17 Release False False True'
+    'gcc-release-static gcc-native Release False False'
+    'gcc-release-shared gcc-native Release True False'
+    'gcc-debug-scalar gcc-native Debug False True'
+    'gcc-asan gcc-native-asan Debug False True'
+    'gcc-ubsan gcc-native-ubsan Debug False False'
+    'gcc-tsan gcc-native-tsan Debug False False'
+    'gcc-asan-shared gcc-native-asan Debug True False'
+    'gcc-ubsan-shared gcc-native-ubsan Debug True False'
+    'gcc-tsan-shared gcc-native-tsan Debug True False'
+    'gcc-pinned gcc17 Release False False'
 )
 
 if [[ -n ${CLANGXX:-} ]]; then
@@ -41,16 +41,16 @@ fi
 
 if [[ -n ${clang_available} ]]; then
     axes+=(
-        'clang-release-static clang-native Release False False True'
-        'clang-release-shared clang-native Release True False True'
-        'clang-debug-scalar clang-native Debug False True False'
-        'clang-asan clang-native-asan Debug False True False'
-        'clang-ubsan clang-native-ubsan Debug False False False'
-        'clang-tsan clang-native-tsan Debug False False False'
-        'clang-asan-shared clang-native-asan Debug True False False'
-        'clang-ubsan-shared clang-native-ubsan Debug True False False'
-        'clang-tsan-shared clang-native-tsan Debug True False False'
-        'clang-pinned clang24 Release False False True'
+        'clang-release-static clang-native Release False False'
+        'clang-release-shared clang-native Release True False'
+        'clang-debug-scalar clang-native Debug False True'
+        'clang-asan clang-native-asan Debug False True'
+        'clang-ubsan clang-native-ubsan Debug False False'
+        'clang-tsan clang-native-tsan Debug False False'
+        'clang-asan-shared clang-native-asan Debug True False'
+        'clang-ubsan-shared clang-native-ubsan Debug True False'
+        'clang-tsan-shared clang-native-tsan Debug True False'
+        'clang-pinned clang24 Release False False'
     )
 else
     printf 'Clang unavailable. Activate the compiler before verification.\n' >&2
@@ -90,7 +90,7 @@ fi
 mkdir -p -- "${build_root}"
 
 run_axis() {
-    local name=$1 profile=$2 build_type=$3 shared=$4 scalar=$5 benchmarks=$6
+    local name=$1 profile=$2 build_type=$3 shared=$4 scalar=$5
     local axis_dir="${build_root}/${name}"
     local host_profile="${profile}"
     if [[ ${profile} == gcc17 || ${profile} == clang24 ]]; then
@@ -107,7 +107,6 @@ run_axis() {
         -s:h "build_type=${build_type}"
         -o:h "quickheap/*:shared=${shared}"
         -o:h "quickheap/*:scalar=${scalar}"
-        -o:h "quickheap/*:with_benchmarks=${benchmarks}"
         --build=missing
         --lockfile=''
     )
@@ -127,7 +126,7 @@ run_axis() {
 
 matched=0
 for axis in "${axes[@]}"; do
-    read -r name profile build_type shared scalar benchmarks <<<"${axis}"
+    read -r name profile build_type shared scalar <<<"${axis}"
     if ((${#selected[@]})); then
         match=0
         for requested in "${selected[@]}"; do
@@ -141,7 +140,7 @@ for axis in "${axes[@]}"; do
     fi
     matched=$((matched + 1))
     run_axis "${name}" "${profile}" "${build_type}" "${shared}" \
-        "${scalar}" "${benchmarks}"
+        "${scalar}"
 done
 
 if ((${#selected[@]})); then
@@ -154,7 +153,6 @@ fi
 
 conan lock create "${root_dir}" \
     -pr:h gcc-native -pr:b "${build_profile}" \
-    -o:h 'quickheap/*:with_benchmarks=True' \
     --lockfile='' --lockfile-out "${build_root}/conan.lock"
 
 editable_dir="${build_root}/editable"

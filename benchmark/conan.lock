@@ -1,0 +1,16 @@
+{
+    "version": "0.5",
+    "requires": [
+        "quickheap/0.2.0#580b5e7414a50c93179399d31f920cf8%1792704258.9929047",
+        "highway/1.4.0#96e316cc0703d31a89fa299e24228050%1777987748.939",
+        "catch2/3.16.0#95f400ca2fba9f0c5ce5aea6e6fe0055%1788523836.458",
+        "boost/1.90.0#d762a507a00f26eb3bb10805ef8a48ba%1785428394.618"
+    ],
+    "build_requires": [
+        "ninja/1.13.0#platform",
+        "cmake/4.3.4#platform",
+        "ccache/4.9.1#platform"
+    ],
+    "python_requires": [],
+    "config_requires": []
+}

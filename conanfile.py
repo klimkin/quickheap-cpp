@@ -15,13 +15,11 @@ class QuickHeapConan(ConanFile):
     options = {
         "shared": [True, False],
         "fPIC": [True, False],
-        "with_benchmarks": [True, False],
         "scalar": [True, False],
     }
     default_options = {
         "shared": False,
         "fPIC": True,
-        "with_benchmarks": False,
         "scalar": False,
     }
     exports_sources = (
@@ -29,7 +27,6 @@ class QuickHeapConan(ConanFile):
         "include/*",
         "src/*",
         "test/*",
-        "benchmark/*",
     )
 
     def config_options(self):
@@ -58,9 +55,6 @@ class QuickHeapConan(ConanFile):
 
     def generate(self):
         tc = CMakeToolchain(self)
-        tc.cache_variables["QUICKHEAP_BUILD_BENCHMARKS"] = bool(
-            self.options.with_benchmarks
-        )
         tc.cache_variables["QUICKHEAP_SCALAR"] = bool(self.options.scalar)
         tc.cache_variables["CMAKE_INSTALL_PREFIX"] = os.path.join(
             self.build_folder, "package"
@@ -77,9 +71,6 @@ class QuickHeapConan(ConanFile):
 
     def package(self):
         CMake(self).install()
-
-    def package_id(self):
-        del self.info.options.with_benchmarks
 
     def package_info(self):
         self.cpp_info.libs = ["quickheap"]

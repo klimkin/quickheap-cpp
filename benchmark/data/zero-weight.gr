@@ -1,0 +1,4 @@
+c Packed vertex IDs decrease along zero-weight arcs.
+p sp 3 2
+a 1 3 0
+a 3 2 0

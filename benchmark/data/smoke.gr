@@ -1,0 +1,15 @@
+c Six-vertex upstream Dijkstra and Prim fixture, converted to 1-based DIMACS.
+p sp 6 13
+a 1 2 2
+a 1 4 3
+a 2 1 3
+a 3 6 6
+a 4 2 6
+a 4 3 9
+a 4 5 10
+a 5 3 1
+a 5 4 11
+a 5 6 6
+a 6 1 12
+a 6 3 3
+a 6 5 2
