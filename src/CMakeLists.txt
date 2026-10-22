@@ -1,9 +1,5 @@
 add_library(quickheap quickheap.cpp simd.cpp)
 add_library(quickheap::quickheap ALIAS quickheap)
-set_target_properties(quickheap PROPERTIES
-    VERSION ${PROJECT_VERSION}
-    SOVERSION ${PROJECT_VERSION_MAJOR}
-)
 include(GenerateExportHeader)
 generate_export_header(quickheap
     BASE_NAME QUICKHEAP

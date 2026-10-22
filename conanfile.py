@@ -1,7 +1,6 @@
 import os
 
 from conan import ConanFile
-from conan.errors import ConanInvalidConfiguration
 from conan.tools.build import check_min_cppstd
 from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
 
@@ -61,8 +60,6 @@ class QuickHeapConan(ConanFile):
 
     def validate(self):
         check_min_cppstd(self, 20)
-        if self.options.with_benchmarks and not self.options.with_tests:
-            raise ConanInvalidConfiguration("Benchmarks require with_tests=True")
 
     def generate(self):
         toolchain = CMakeToolchain(self)
@@ -93,7 +90,5 @@ class QuickHeapConan(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = ["quickheap"]
-        self.cpp_info.set_property("cmake_file_name", "quickheap")
-        self.cpp_info.set_property("cmake_target_name", "quickheap::quickheap")
         if not self.options.shared:
             self.cpp_info.defines = ["QUICKHEAP_STATIC_DEFINE"]
