@@ -17,6 +17,7 @@ entries, moves, null C arguments, and capacity retention.
 | Benchmark smoke | 64 cases execute with validated outputs |
 | Independent review | Correctness and package reviewers report no remaining defect; [decision trail](../.audit/port.tsv) records verdicts |
 | GCC 17 and Clang 24 | Native/scalar tests, differential traces, static/shared and editable consumers pass; sanitizer matrix running |
+| GCC 17 ASan and Clang 24 ASan/UBSan | Local tests and packaged C/C++17 consumers pass |
 | Installed CMake config | External C and C++17 callers pass |
 
 Independent reviewer reports additional scalar and AVX2 partition and pivot
