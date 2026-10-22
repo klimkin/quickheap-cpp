@@ -1,0 +1,11 @@
+[settings]
+compiler.sanitizer=Address
+
+[conf]
+tools.build:cflags+=['-fsanitize=address', '-fno-omit-frame-pointer']
+tools.build:cxxflags+=['-fsanitize=address', '-fno-omit-frame-pointer']
+tools.build:sharedlinkflags+=['-fsanitize=address']
+tools.build:exelinkflags+=['-fsanitize=address']
+
+[runenv]
+ASAN_OPTIONS=halt_on_error=1:detect_leaks=1

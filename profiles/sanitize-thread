@@ -1,0 +1,11 @@
+[settings]
+compiler.sanitizer=Thread
+
+[conf]
+tools.build:cflags+=['-fsanitize=thread', '-fno-omit-frame-pointer']
+tools.build:cxxflags+=['-fsanitize=thread', '-fno-omit-frame-pointer']
+tools.build:sharedlinkflags+=['-fsanitize=thread']
+tools.build:exelinkflags+=['-fsanitize=thread']
+
+[runenv]
+TSAN_OPTIONS=halt_on_error=1

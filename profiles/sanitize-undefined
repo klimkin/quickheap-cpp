@@ -1,0 +1,11 @@
+[settings]
+compiler.sanitizer=UndefinedBehavior
+
+[conf]
+tools.build:cflags+=['-fsanitize=undefined', '-fno-omit-frame-pointer']
+tools.build:cxxflags+=['-fsanitize=undefined', '-fno-omit-frame-pointer']
+tools.build:sharedlinkflags+=['-fsanitize=undefined']
+tools.build:exelinkflags+=['-fsanitize=undefined']
+
+[runenv]
+UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
