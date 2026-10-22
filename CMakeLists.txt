@@ -74,6 +74,8 @@ if(QUICKHEAP_BUILD_BENCHMARKS)
                 --benchmark_filter=/1024$
                 --benchmark_min_time=0.001s
                 --benchmark_repetitions=1)
+        set_tests_properties(quickheap_benchmark PROPERTIES
+            FAIL_REGULAR_EXPRESSION "ERROR OCCURRED")
     endif()
 endif()
 
