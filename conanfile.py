@@ -1,6 +1,7 @@
 import os
 
 from conan import ConanFile
+from conan.errors import ConanInvalidConfiguration
 from conan.tools.build import check_min_cppstd
 from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
 
@@ -56,11 +57,13 @@ class QuickHeapConan(ConanFile):
         self.tool_requires("cmake/[>=4.0]")
         if self.options.with_tests:
             self.test_requires("gtest/[^1.15]")
-        if self.options.with_benchmarks:
-            self.test_requires("benchmark/[^1.9]")
+            if self.options.with_benchmarks:
+                self.test_requires("benchmark/[^1.9]")
 
     def validate(self):
         check_min_cppstd(self, 20)
+        if self.options.with_benchmarks and not self.options.with_tests:
+            raise ConanInvalidConfiguration("Benchmarks require with_tests=True")
 
     def generate(self):
         toolchain = CMakeToolchain(self)
