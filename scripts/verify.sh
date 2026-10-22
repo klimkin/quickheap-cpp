@@ -107,7 +107,6 @@ run_axis() {
         -s:h "build_type=${build_type}"
         -o:h "quickheap/*:shared=${shared}"
         -o:h "quickheap/*:scalar=${scalar}"
-        -o:h 'quickheap/*:with_tests=True'
         -o:h "quickheap/*:with_benchmarks=${benchmarks}"
         --build=missing
         --lockfile=''
@@ -167,11 +166,11 @@ editable_registered=1
 
 conan build "${root_dir}" -of "${editable_local}" \
     -pr:h gcc-native -pr:b "${build_profile}" \
-    -o:h 'quickheap/*:with_tests=True' --build=missing --lockfile=''
+    --build=missing --lockfile=''
 consumer_dir=$(mktemp -d "${editable_dir}/consumer.XXXXXX")
 cleanup_paths+=("${consumer_dir}")
 cp -- "${root_dir}/test_package/"{conanfile.py,CMakeLists.txt,test_c.c,test_cpp.cpp} \
     "${consumer_dir}/"
 conan test "${consumer_dir}" quickheap/0.2.0 \
     -pr:h gcc-native -pr:b "${build_profile}" \
-    -o:h 'quickheap/*:with_tests=True' --build=missing --lockfile=''
+    --build=missing --lockfile=''

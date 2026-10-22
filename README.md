@@ -15,6 +15,8 @@ conan build . -pr:h gcc-native -pr:b gcc-native-build --build=missing
 conan create . -pr:h gcc-native -pr:b gcc-native-build --build=missing
 ```
 
+Tests run by default. Add `-c tools.build:skip_test=True` to skip execution.
+
 Central Conan profiles own compiler discovery, linkers, ccache, and sanitizer
 flags. Install your workspace Conan configuration before building. Set
 `CONAN_HOME` before invoking Conan to select its cache. Use `clang-native`
