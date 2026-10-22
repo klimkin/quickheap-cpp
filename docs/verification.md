@@ -19,6 +19,9 @@ entries, moves, null C arguments, and capacity retention.
 | GCC 17 and Clang 24 | Native/scalar tests, differential traces, static/shared and editable consumers pass |
 | GCC 17 and Clang 24 ASan/UBSan/TSan | Local tests and packaged C/C++17 consumers pass |
 | Conan CMakeDeps | External C and C++17 callers require only Quickheap |
+| Natural-owner matrix | All 20 axes pass with fresh build trees, including 12 static/shared sanitizer axes |
+| Full-feature lockfile | Regenerated graph matches committed lockfile |
+| Compiler cache | Central profiles set C and C++ ccache launchers for both compiler families |
 
 Independent reviewer reports additional scalar and AVX2 partition and pivot
 probes. Those probes were temporary review artifacts, not committed regression
@@ -33,9 +36,11 @@ checks, so timings measure that workload driver plus heap operations.
 Highway 1.4.0 emits an upstream CMake policy deprecation warning. GoogleTest
 1.18.0 emits a Clang 24 character-conversion warning during its own build.
 Quickheap compiles with `-Wall -Wextra -Werror` without project warnings.
+Benchmark smoke reports CPU scaling warnings. Full warning-free acceptance
+remains unmet because of upstream and measurement-environment warnings.
 
-Long matrix processes started before `verify.sh` cleanup edits completed their
-checks, then failed while reading changed script offsets. Final driver reruns
-exit successfully and remove their temporary consumers. The GCC driver rerun filters to C ABI smoke because its
-full TSan suite already passed. These reruns check driver completion separately
-from the full suite results above.
+Natural-owner refit uses central Conan profiles for compilers, linkers,
+ccache, and sanitizers. CMake target construction follows EBI source/test
+subdirectories. Conan CMakeDeps owns dependency propagation for both static
+and shared packages. See [refit decision trail](../.audit/refit.tsv) and
+[independent closure review](../.audit/refit-review.md).
