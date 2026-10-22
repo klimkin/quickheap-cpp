@@ -1,2 +1,2 @@
-include(clang)
-include(sanitize-address)
+include(./clang)
+include(./sanitize-address)

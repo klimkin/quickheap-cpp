@@ -1,2 +1,2 @@
-include(clang)
-include(sanitize-thread)
+include(./clang)
+include(./sanitize-thread)

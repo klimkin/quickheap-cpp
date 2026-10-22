@@ -1,2 +1,2 @@
-include(gcc)
-include(sanitize-thread)
+include(./gcc)
+include(./sanitize-thread)

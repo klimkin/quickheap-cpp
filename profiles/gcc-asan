@@ -1,2 +1,2 @@
-include(gcc)
-include(sanitize-address)
+include(./gcc)
+include(./sanitize-address)

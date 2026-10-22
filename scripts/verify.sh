@@ -5,6 +5,18 @@ root_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 build_root=${QUICKHEAP_VERIFY_DIR:-"${root_dir}/build/verify"}
 profile_dir="${root_dir}/profiles"
 build_profile="${profile_dir}/gcc"
+cleanup_paths=()
+editable_registered=0
+
+cleanup() {
+    if ((editable_registered)); then
+        conan editable remove --refs quickheap/0.2.0
+    fi
+    for path in "${cleanup_paths[@]}"; do
+        rm -rf -- "${path}"
+    done
+}
+trap cleanup EXIT
 
 command -v conan >/dev/null
 command -v cmake >/dev/null
@@ -63,6 +75,7 @@ run_axis() {
     conan build "${root_dir}" -of "${axis_dir}/local" "${args[@]}"
     local package_dir
     package_dir=$(mktemp -d "${axis_dir}/package.XXXXXX")
+    cleanup_paths+=("${package_dir}")
     mkdir -p "${package_dir}/test_package"
     cp -- "${root_dir}/test_package/"{conanfile.py,CMakeLists.txt,test_c.c,test_cpp.cpp} \
         "${package_dir}/test_package/"
@@ -111,12 +124,13 @@ editable_dir="${build_root}/editable"
 mkdir -p -- "${editable_dir}"
 conan editable add "${root_dir}" --name quickheap --version 0.2.0 \
     -of "${editable_dir}/local"
-trap 'conan editable remove --refs quickheap/0.2.0' EXIT
+editable_registered=1
 
 conan build "${root_dir}" -of "${editable_dir}/local" \
     -pr:h "${profile_dir}/gcc" -pr:b "${build_profile}" \
     -o:h 'quickheap/*:with_tests=True' --build=missing --lockfile=''
 consumer_dir=$(mktemp -d "${editable_dir}/consumer.XXXXXX")
+cleanup_paths+=("${consumer_dir}")
 cp -- "${root_dir}/test_package/"{conanfile.py,CMakeLists.txt,test_c.c,test_cpp.cpp} \
     "${consumer_dir}/"
 conan test "${consumer_dir}" quickheap/0.2.0 \
