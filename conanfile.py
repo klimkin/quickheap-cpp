@@ -15,14 +15,12 @@ class QuickHeapConan(ConanFile):
     options = {
         "shared": [True, False],
         "fPIC": [True, False],
-        "with_tests": [True, False],
         "with_benchmarks": [True, False],
         "scalar": [True, False],
     }
     default_options = {
         "shared": False,
         "fPIC": True,
-        "with_tests": True,
         "with_benchmarks": False,
         "scalar": False,
     }
@@ -53,25 +51,23 @@ class QuickHeapConan(ConanFile):
 
     def build_requirements(self):
         self.tool_requires("cmake/[>=4.0]")
-        if self.options.with_tests:
-            self.test_requires("gtest/[^1.15]")
-            if self.options.with_benchmarks:
-                self.test_requires("benchmark/[^1.9]")
+        self.test_requires("gtest/[^1.15]")
+        if self.options.with_benchmarks:
+            self.test_requires("benchmark/[^1.9]")
 
     def validate(self):
         check_min_cppstd(self, 20)
 
     def generate(self):
-        toolchain = CMakeToolchain(self)
-        toolchain.cache_variables["BUILD_TESTING"] = bool(self.options.with_tests)
-        toolchain.cache_variables["QUICKHEAP_BUILD_BENCHMARKS"] = bool(
+        tc = CMakeToolchain(self)
+        tc.cache_variables["QUICKHEAP_BUILD_BENCHMARKS"] = bool(
             self.options.with_benchmarks
         )
-        toolchain.cache_variables["QUICKHEAP_SCALAR"] = bool(self.options.scalar)
-        toolchain.cache_variables["CMAKE_INSTALL_PREFIX"] = os.path.join(
+        tc.cache_variables["QUICKHEAP_SCALAR"] = bool(self.options.scalar)
+        tc.cache_variables["CMAKE_INSTALL_PREFIX"] = os.path.join(
             self.build_folder, "package"
         )
-        toolchain.generate()
+        tc.generate()
         CMakeDeps(self).generate()
 
     def build(self):
@@ -85,7 +81,6 @@ class QuickHeapConan(ConanFile):
         CMake(self).install()
 
     def package_id(self):
-        del self.info.options.with_tests
         del self.info.options.with_benchmarks
 
     def package_info(self):
