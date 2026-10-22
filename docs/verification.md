@@ -33,8 +33,9 @@ No performance comparison is claimed. Smoke timings verify execution only.
 Benchmark replay includes script traversal, output recording, and payload
 checks, so timings measure that workload driver plus heap operations.
 
-Highway 1.4.0 emits an upstream CMake policy deprecation warning. GoogleTest
-1.18.0 emits a Clang 24 character-conversion warning during its own build.
+Highway 1.4.0 emitted an upstream CMake policy deprecation warning. Earlier
+GoogleTest 1.17.0 build emitted a Clang 24 character-conversion warning.
+Retained GoogleTest 1.18.0 build log contains no compiler warning.
 Quickheap compiles with `-Wall -Wextra -Werror` without project warnings.
 Benchmark smoke reports CPU scaling warnings. Full warning-free acceptance
 remains unmet because of upstream and measurement-environment warnings.
