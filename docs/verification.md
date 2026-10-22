@@ -36,6 +36,6 @@ Quickheap compiles with `-Wall -Wextra -Werror` without project warnings.
 
 Long matrix processes started before `verify.sh` cleanup edits completed their
 checks, then failed while reading changed script offsets. Final driver reruns
-use the stable script. The GCC driver rerun filters to C ABI smoke because its
+exit successfully and remove their temporary consumers. The GCC driver rerun filters to C ABI smoke because its
 full TSan suite already passed. These reruns check driver completion separately
 from the full suite results above.
