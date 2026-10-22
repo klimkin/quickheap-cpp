@@ -192,27 +192,85 @@ using IntegerTypes = ::testing::Types<std::int32_t, std::uint32_t,
                                       std::int64_t, std::uint64_t>;
 TYPED_TEST_SUITE(QuickHeapTypedTest, IntegerTypes);
 
-#define QUICKHEAP_WORKLOAD_TESTS(Name, PatternName)                            \
-    TYPED_TEST(QuickHeapTypedTest, Sort##Name##Keys) {                         \
-        sort_workload<TypeParam, false, Pattern::PatternName>();               \
-    }                                                                          \
-    TYPED_TEST(QuickHeapTypedTest, Sort##Name##KeyValues) {                    \
-        sort_workload<TypeParam, true, Pattern::PatternName>();                \
-    }                                                                          \
-    TYPED_TEST(QuickHeapTypedTest, Wiggle##Name##Keys) {                       \
-        wiggle_workload<TypeParam, false, Pattern::PatternName>();             \
-    }                                                                          \
-    TYPED_TEST(QuickHeapTypedTest, Wiggle##Name##KeyValues) {                  \
-        wiggle_workload<TypeParam, true, Pattern::PatternName>();              \
-    }
+TYPED_TEST(QuickHeapTypedTest, SortRandomKeys) {
+    sort_workload<TypeParam, false, Pattern::Random>();
+}
 
-QUICKHEAP_WORKLOAD_TESTS(Random, Random)
-QUICKHEAP_WORKLOAD_TESTS(Increasing, Increasing)
-QUICKHEAP_WORKLOAD_TESTS(Decreasing, Decreasing)
-QUICKHEAP_WORKLOAD_TESTS(MostlyMax, MostlyMax)
-QUICKHEAP_WORKLOAD_TESTS(MostlyMin, MostlyMin)
+TYPED_TEST(QuickHeapTypedTest, SortRandomKeyValues) {
+    sort_workload<TypeParam, true, Pattern::Random>();
+}
 
-#undef QUICKHEAP_WORKLOAD_TESTS
+TYPED_TEST(QuickHeapTypedTest, WiggleRandomKeys) {
+    wiggle_workload<TypeParam, false, Pattern::Random>();
+}
+
+TYPED_TEST(QuickHeapTypedTest, WiggleRandomKeyValues) {
+    wiggle_workload<TypeParam, true, Pattern::Random>();
+}
+
+TYPED_TEST(QuickHeapTypedTest, SortIncreasingKeys) {
+    sort_workload<TypeParam, false, Pattern::Increasing>();
+}
+
+TYPED_TEST(QuickHeapTypedTest, SortIncreasingKeyValues) {
+    sort_workload<TypeParam, true, Pattern::Increasing>();
+}
+
+TYPED_TEST(QuickHeapTypedTest, WiggleIncreasingKeys) {
+    wiggle_workload<TypeParam, false, Pattern::Increasing>();
+}
+
+TYPED_TEST(QuickHeapTypedTest, WiggleIncreasingKeyValues) {
+    wiggle_workload<TypeParam, true, Pattern::Increasing>();
+}
+
+TYPED_TEST(QuickHeapTypedTest, SortDecreasingKeys) {
+    sort_workload<TypeParam, false, Pattern::Decreasing>();
+}
+
+TYPED_TEST(QuickHeapTypedTest, SortDecreasingKeyValues) {
+    sort_workload<TypeParam, true, Pattern::Decreasing>();
+}
+
+TYPED_TEST(QuickHeapTypedTest, WiggleDecreasingKeys) {
+    wiggle_workload<TypeParam, false, Pattern::Decreasing>();
+}
+
+TYPED_TEST(QuickHeapTypedTest, WiggleDecreasingKeyValues) {
+    wiggle_workload<TypeParam, true, Pattern::Decreasing>();
+}
+
+TYPED_TEST(QuickHeapTypedTest, SortMostlyMaxKeys) {
+    sort_workload<TypeParam, false, Pattern::MostlyMax>();
+}
+
+TYPED_TEST(QuickHeapTypedTest, SortMostlyMaxKeyValues) {
+    sort_workload<TypeParam, true, Pattern::MostlyMax>();
+}
+
+TYPED_TEST(QuickHeapTypedTest, WiggleMostlyMaxKeys) {
+    wiggle_workload<TypeParam, false, Pattern::MostlyMax>();
+}
+
+TYPED_TEST(QuickHeapTypedTest, WiggleMostlyMaxKeyValues) {
+    wiggle_workload<TypeParam, true, Pattern::MostlyMax>();
+}
+
+TYPED_TEST(QuickHeapTypedTest, SortMostlyMinKeys) {
+    sort_workload<TypeParam, false, Pattern::MostlyMin>();
+}
+
+TYPED_TEST(QuickHeapTypedTest, SortMostlyMinKeyValues) {
+    sort_workload<TypeParam, true, Pattern::MostlyMin>();
+}
+
+TYPED_TEST(QuickHeapTypedTest, WiggleMostlyMinKeys) {
+    wiggle_workload<TypeParam, false, Pattern::MostlyMin>();
+}
+
+TYPED_TEST(QuickHeapTypedTest, WiggleMostlyMinKeyValues) {
+    wiggle_workload<TypeParam, true, Pattern::MostlyMin>();
+}
 
 TYPED_TEST(QuickHeapTypedTest, KeyWrapperMovesAndRetainsCapacity) {
     using T = TypeParam;
