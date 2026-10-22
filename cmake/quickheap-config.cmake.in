@@ -1,6 +1,8 @@
 @PACKAGE_INIT@
 
-include(CMakeFindDependencyMacro)
-find_dependency(highway 1.4.0 CONFIG)
+if(@QUICKHEAP_STATIC@)
+    include(CMakeFindDependencyMacro)
+    find_dependency(highway 1.4.0 CONFIG)
+endif()
 include("${CMAKE_CURRENT_LIST_DIR}/quickheapTargets.cmake")
 check_required_components(quickheap)

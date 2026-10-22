@@ -74,7 +74,7 @@ editable packages.
 ```sh
 conan build . -pr:h gcc-native -pr:b gcc-native-build --build=missing \
     -o '&:with_benchmarks=True'
-build/Release/quickheap_benchmark --benchmark_filter=MonotoneConstantSize
+build/Release/benchmark/quickheap_benchmark --benchmark_filter=MonotoneConstantSize
 ```
 
 Eight Rust workload ports cover heapsort, constant-size queues, wiggle,
@@ -89,7 +89,7 @@ final size. Throughput counts individual push and pop calls.
 ```sh
 scripts/verify.sh
 scripts/verify.sh gcc-release-static clang-debug-scalar
-python3 scripts/differential.py build/Release/quickheap_trace
+python3 scripts/differential.py build/Release/test/quickheap_trace
 ```
 
 Matrix checks GCC and Clang, static and shared packages, scalar Debug builds,
