@@ -3,8 +3,7 @@ set -euo pipefail
 
 root_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 build_root=${QUICKHEAP_VERIFY_DIR:-"${root_dir}/build/verify"}
-profile_dir="${root_dir}/profiles"
-build_profile="${profile_dir}/gcc"
+build_profile=${QUICKHEAP_BUILD_PROFILE:-gcc-native-build}
 cleanup_paths=()
 editable_registered=0
 
@@ -24,12 +23,12 @@ command -v cmake >/dev/null
 mkdir -p -- "${build_root}"
 
 axes=(
-    'gcc-release-static gcc Release False False True'
-    'gcc-release-shared gcc Release True False True'
-    'gcc-debug-scalar gcc Debug False True False'
-    'gcc-asan gcc-asan Debug False True False'
-    'gcc-ubsan gcc-ubsan Debug False False False'
-    'gcc-tsan gcc-tsan Debug False False False'
+    'gcc-release-static gcc-native Release False False True'
+    'gcc-release-shared gcc-native Release True False True'
+    'gcc-debug-scalar gcc-native Debug False True False'
+    'gcc-asan gcc-native-asan Debug False True False'
+    'gcc-ubsan gcc-native-ubsan Debug False False False'
+    'gcc-tsan gcc-native-tsan Debug False False False'
 )
 
 if [[ -n ${CLANGXX:-} ]]; then
@@ -40,12 +39,12 @@ fi
 
 if [[ -n ${clang_available} ]]; then
     axes+=(
-        'clang-release-static clang Release False False True'
-        'clang-release-shared clang Release True False True'
-        'clang-debug-scalar clang Debug False True False'
-        'clang-asan clang-asan Debug False True False'
-        'clang-ubsan clang-ubsan Debug False False False'
-        'clang-tsan clang-tsan Debug False False False'
+        'clang-release-static clang-native Release False False True'
+        'clang-release-shared clang-native Release True False True'
+        'clang-debug-scalar clang-native Debug False True False'
+        'clang-asan clang-native-asan Debug False True False'
+        'clang-ubsan clang-native-ubsan Debug False False False'
+        'clang-tsan clang-native-tsan Debug False False False'
     )
 else
     printf 'Clang unavailable. Set CLANG and CLANGXX to enable Clang axes.\n' >&2
@@ -54,7 +53,7 @@ fi
 run_axis() {
     local name=$1 profile=$2 build_type=$3 shared=$4 scalar=$5 benchmarks=$6
     local axis_dir="${build_root}/${name}"
-    local host_profile="${profile_dir}/${profile}"
+    local host_profile="${profile}"
 
     mkdir -p -- "${axis_dir}"
     printf 'Running %s with host profile %s and build profile %s\n' \
@@ -112,7 +111,7 @@ if ((${#selected[@]})); then
 fi
 
 conan lock create "${root_dir}" \
-    -pr:h "${profile_dir}/gcc" -pr:b "${build_profile}" \
+    -pr:h gcc-native -pr:b "${build_profile}" \
     --lockfile='' --lockfile-out "${build_root}/conan.lock"
 
 if conan editable list | rg -q '^quickheap/0\.2\.0'; then
@@ -127,12 +126,12 @@ conan editable add "${root_dir}" --name quickheap --version 0.2.0 \
 editable_registered=1
 
 conan build "${root_dir}" -of "${editable_dir}/local" \
-    -pr:h "${profile_dir}/gcc" -pr:b "${build_profile}" \
+    -pr:h gcc-native -pr:b "${build_profile}" \
     -o:h 'quickheap/*:with_tests=True' --build=missing --lockfile=''
 consumer_dir=$(mktemp -d "${editable_dir}/consumer.XXXXXX")
 cleanup_paths+=("${consumer_dir}")
 cp -- "${root_dir}/test_package/"{conanfile.py,CMakeLists.txt,test_c.c,test_cpp.cpp} \
     "${consumer_dir}/"
 conan test "${consumer_dir}" quickheap/0.2.0 \
-    -pr:h "${profile_dir}/gcc" -pr:b "${build_profile}" \
+    -pr:h gcc-native -pr:b "${build_profile}" \
     -o:h 'quickheap/*:with_tests=True' --build=missing --lockfile=''

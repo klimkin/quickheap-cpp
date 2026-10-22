@@ -11,14 +11,14 @@ Requires Conan 2, CMake 4, Ninja, and a C++20 compiler. Public C++ headers
 require C++17. Conan supplies Highway, GoogleTest, and Google Benchmark.
 
 ```sh
-conan build . -pr:h profiles/gcc -pr:b profiles/gcc --build=missing
-conan create . -pr:h profiles/gcc -pr:b profiles/gcc --build=missing
+conan build . -pr:h gcc-native -pr:b gcc-native-build --build=missing
+conan create . -pr:h gcc-native -pr:b gcc-native-build --build=missing
 ```
 
-Profiles detect compilers on `PATH`. Set `GCC` and `GXX`, or `CLANG` and
-`CLANGXX`, to select explicit executables. Set `CONAN_HOME` before invoking
-Conan to select another cache. Sanitizer profiles compose compiler profiles
-with flag overlays.
+Central Conan profiles own compiler discovery, linkers, ccache, and sanitizer
+flags. Install your workspace Conan configuration before building. Set
+`CONAN_HOME` before invoking Conan to select its cache. Use `clang-native`
+as host profile for Clang. Build profile remains `gcc-native-build`.
 
 ## Use C++
 
@@ -72,7 +72,7 @@ editable packages.
 ## Run benchmarks
 
 ```sh
-conan build . -pr:h profiles/gcc -pr:b profiles/gcc --build=missing \
+conan build . -pr:h gcc-native -pr:b gcc-native-build --build=missing \
     -o '&:with_benchmarks=True'
 build/Release/quickheap_benchmark --benchmark_filter=MonotoneConstantSize
 ```

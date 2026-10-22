@@ -1,2 +1,0 @@
-include(./clang)
-include(./sanitize-thread)

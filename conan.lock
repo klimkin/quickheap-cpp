@@ -6,7 +6,9 @@
         "benchmark/1.9.5#be3c97b5c3446a58870070d99e59c1b5%1785428391.396"
     ],
     "build_requires": [
-        "cmake/4.4.2#ac9b76aab45c53b87fb1905880046fc1%1786567688.279"
+        "ninja/1.13.0#platform",
+        "cmake/4.3.4#platform",
+        "ccache/4.9.1#platform"
     ],
     "python_requires": [],
     "config_requires": []
