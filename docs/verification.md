@@ -16,8 +16,8 @@ entries, moves, null C arguments, and capacity retention.
 | Editable package | External C and C++17 callers pass |
 | Benchmark smoke | 64 cases execute with validated outputs |
 | Independent review | Correctness and package reviewers report no remaining defect; [decision trail](../.audit/port.tsv) records verdicts |
-| GCC 17 and Clang 24 | Native/scalar tests, differential traces, static/shared and editable consumers pass; sanitizer matrix running |
-| GCC 17 and Clang 24 ASan/UBSan | Local tests and packaged C/C++17 consumers pass |
+| GCC 17 and Clang 24 | Native/scalar tests, differential traces, static/shared and editable consumers pass |
+| GCC 17 and Clang 24 ASan/UBSan/TSan | Local tests and packaged C/C++17 consumers pass |
 | Installed CMake config | External C and C++17 callers pass |
 
 Independent reviewer reports additional scalar and AVX2 partition and pivot
@@ -33,3 +33,9 @@ checks, so timings measure that workload driver plus heap operations.
 Highway 1.4.0 emits an upstream CMake policy deprecation warning. GoogleTest
 1.18.0 emits a Clang 24 character-conversion warning during its own build.
 Quickheap compiles with `-Wall -Wextra -Werror` without project warnings.
+
+Long matrix processes started before `verify.sh` cleanup edits completed their
+checks, then failed while reading changed script offsets. Final driver reruns
+use the stable script. The GCC driver rerun filters to C ABI smoke because its
+full TSan suite already passed. These reruns check driver completion separately
+from the full suite results above.
