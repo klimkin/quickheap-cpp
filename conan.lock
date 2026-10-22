@@ -1,9 +1,9 @@
 {
     "version": "0.5",
     "requires": [
-        "highway/1.4.0#96e316cc0703d31a89fa299e24228050%1777987748.939",
+        "highway/1.4.0#06801f8cfa0706233d96513e899abd7f%1792691169.673",
         "gtest/1.18.0#e2507fc4efe2ec9e2db9e5c91eefab9f%1786446847.733",
-        "benchmark/1.9.5#b885dc73ad67b40a55d45684d1c88ad1%1774363287.434"
+        "benchmark/1.9.5#be3c97b5c3446a58870070d99e59c1b5%1785428391.396"
     ],
     "build_requires": [
         "cmake/4.4.2#ac9b76aab45c53b87fb1905880046fc1%1786567688.279"
