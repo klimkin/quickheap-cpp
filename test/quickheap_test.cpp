@@ -7,6 +7,8 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <csignal>
+#include <cstdlib>
 #include <functional>
 #include <limits>
 #include <optional>
@@ -313,13 +315,19 @@ TYPED_TEST(QuickHeapTypedTest, CApiEmptyPopLeavesOutputUntouched) {
 
 TYPED_TEST(QuickHeapTypedTest, CApiRejectsEveryNullPointer) {
     using Api = CApi<TypeParam>;
-    EXPECT_DEATH(Api::destroy(nullptr), "");
-    EXPECT_DEATH(Api::push(nullptr, TypeParam{}), "");
-    EXPECT_DEATH({ TypeParam out{}; Api::pop(nullptr, &out); }, "");
-    EXPECT_DEATH(Api::size(nullptr), "");
-    EXPECT_DEATH(Api::empty(nullptr), "");
-    EXPECT_DEATH(Api::capacity(nullptr), "");
-    EXPECT_DEATH({ auto *heap = Api::create(); Api::pop(heap, nullptr); }, "");
+    const auto expect_abort = [](auto operation) {
+        EXPECT_EXIT({
+            std::signal(SIGABRT, [](int) { std::_Exit(86); });
+            operation();
+        }, ::testing::ExitedWithCode(86), "");
+    };
+    expect_abort([] { Api::destroy(nullptr); });
+    expect_abort([] { Api::push(nullptr, TypeParam{}); });
+    expect_abort([] { TypeParam out{}; Api::pop(nullptr, &out); });
+    expect_abort([] { Api::size(nullptr); });
+    expect_abort([] { Api::empty(nullptr); });
+    expect_abort([] { Api::capacity(nullptr); });
+    expect_abort([] { auto* heap = Api::create(); Api::pop(heap, nullptr); });
 }
 
 TEST(CApiFromC, AllFourIntegerTypes) { EXPECT_EQ(quickheap_c_api_smoke(), 0); }
