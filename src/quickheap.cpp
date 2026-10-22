@@ -48,11 +48,11 @@ T& require_pointer(T* pointer) noexcept {
         return c_boundary([&] {                                             \
             auto& heap = require_pointer(pointer).heap;                     \
             auto& destination = require_pointer(output);                   \
-            const auto result = heap.pop();                                 \
-            if (!result) {                                                 \
+            quickheap::detail::BucketHeap<T, 1>::Row result;                \
+            if (!heap.pop_into(result)) {                                   \
                 return false;                                              \
             }                                                              \
-            destination = (*result)[0];                                    \
+            destination = result[0];                                       \
             return true;                                                   \
         });                                                                 \
     }                                                                       \
@@ -101,11 +101,11 @@ void KvSimdQuickHeap<T>::push(T key, T value) {
 
 template <class T>
 std::optional<std::pair<T, T>> KvSimdQuickHeap<T>::try_pop() {
-    const auto result = impl_->heap.pop();
-    if (!result) {
+    typename detail::BucketHeap<T, 2>::Row result;
+    if (!impl_->heap.pop_into(result)) {
         return std::nullopt;
     }
-    return std::pair<T, T>{(*result)[0], (*result)[1]};
+    return std::pair<T, T>{result[0], result[1]};
 }
 
 template <class T>
