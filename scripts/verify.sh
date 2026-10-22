@@ -20,8 +20,6 @@ trap cleanup EXIT
 command -v conan >/dev/null
 command -v cmake >/dev/null
 
-mkdir -p -- "${build_root}"
-
 axes=(
     'gcc-release-static gcc-native Release False False True'
     'gcc-release-shared gcc-native Release True False True'
@@ -56,10 +54,21 @@ if [[ -n ${clang_available} ]]; then
     )
 else
     printf 'Clang unavailable. Activate the compiler before verification.\n' >&2
+    if (($# == 0)); then
+        exit 2
+    fi
 fi
 
 selected=("$@")
+seen_axes=()
 for requested in "${selected[@]}"; do
+    for seen in "${seen_axes[@]}"; do
+        if [[ ${seen} == "${requested}" ]]; then
+            printf 'Duplicate axis requested: %s\n' "${requested}" >&2
+            exit 2
+        fi
+    done
+    seen_axes+=("${requested}")
     matches=0
     for axis in "${axes[@]}"; do
         if [[ ${axis%% *} == "${requested}" ]]; then
@@ -71,6 +80,8 @@ for requested in "${selected[@]}"; do
         exit 2
     fi
 done
+
+mkdir -p -- "${build_root}"
 
 run_axis() {
     local name=$1 profile=$2 build_type=$3 shared=$4 scalar=$5 benchmarks=$6
