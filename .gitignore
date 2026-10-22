@@ -1,8 +1,6 @@
-/build/
-/CMakeUserPresets.json
-/todo.md
-/.audit/*.todo.md
-/test_package/build/
-/test_package/CMakeUserPresets.json
-__pycache__/
 *.pyc
+/.audit/
+/todo.md
+CMakeUserPresets.json
+__pycache__/
+build/
