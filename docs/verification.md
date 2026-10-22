@@ -1,5 +1,28 @@
 # Verification record
 
+Catch2 3.16.0 replaces GoogleTest and Google Benchmark. GCC 15 verification
+preserves all 97 unit cases and 28 null-pointer abort operations. Native
+Release and scalar Debug tests pass. All 360 benchmark configurations pass
+output, payload, and size validation; CTest selects 64 measurements at size
+1024. Native and scalar builds each pass 20 Rust/C++ differential traces.
+Static and shared Conan packages pass external C/C++ consumer tests.
+
+Negative control replaces child operations with a process that returns zero.
+All 28 abort assertions fail, confirming that normal exit cannot pass.
+Windows launcher uses a space-free child program name and searches PATH.
+Windows runtime checks remain unverified on this Linux host.
+
+Catch2 reports time per replay. Independent queue/output state per measured
+run keeps setup, validation, and destruction outside timing. Batch memory
+scales with Catch2's calibrated iteration count. Smoke runs verify execution;
+no performance comparison is claimed.
+
+Conan lockfile pins Catch2 3.16.0 and available Highway 1.4.0 recipe revision
+`96e316cc0703d31a89fa299e24228050`. Previous Highway recipe revision is absent
+from Conan Center. Build-tool versions remain pinned. Current host lacks
+documented native profiles and Clang, so these checks use an isolated GCC 15
+profile. Earlier verification records follow.
+
 Port preserves production bucket algorithm and existing C/C++ declarations.
 Runtime tests cover all four signed/unsigned widths, both heap variants,
 random/increasing/decreasing/extreme-heavy input, vector boundaries, 100,000

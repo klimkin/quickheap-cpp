@@ -9,7 +9,7 @@ dispatch and a scalar build.
 
 Requires Conan 2, CMake 4, Ninja, and a C++20 compiler. Public C++ headers
 support C++17 consumers. Conan profiles select build standard. Conan supplies
-Highway, GoogleTest, and Google Benchmark.
+Highway and Catch2 3.16.0 for tests and benchmarks.
 
 ```sh
 conan build . -pr:h gcc-native -pr:b gcc-native-build --build=missing
@@ -77,7 +77,7 @@ Conan editable packages.
 ```sh
 conan build . -pr:h gcc-native -pr:b gcc-native-build --build=missing \
     -o '&:with_benchmarks=True'
-build/Release/benchmark/quickheap_benchmark --benchmark_filter=MonotoneConstantSize
+build/Release/benchmark/quickheap_benchmark 'MonotoneConstantSize*'
 ```
 
 Eight Rust workload ports cover heapsort, constant-size queues, wiggle,
@@ -85,7 +85,10 @@ descending input, and push-heavy queues. Cases compare key and key/value
 quickheap with `std::priority_queue` for unsigned 32-bit and 64-bit keys.
 Inputs use fixed seeds. Construction, setup, output validation, and destruction
 stay outside timed replay. Each iteration checks popped keys, payloads, and
-final size. Throughput counts individual push and pop calls.
+final size. Catch2 reports time per replay. Benchmark names include push and
+pop counts. Divide total calls by replay time to calculate throughput.
+CTest selects size 1024 and collects one sample per case for smoke coverage.
+Use `--section 1024` to select the same size manually.
 
 ## Verify the port
 

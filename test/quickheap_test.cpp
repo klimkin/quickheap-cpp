@@ -1,10 +1,13 @@
 #include "quickheap.hpp"
 
-#include <gtest/gtest.h>
+#include <catch2/catch_session.hpp>
+#include <catch2/catch_template_test_macros.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <cerrno>
 #include <cstddef>
 #include <cstdint>
 #include <csignal>
@@ -13,9 +16,18 @@
 #include <limits>
 #include <optional>
 #include <queue>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+#ifdef _WIN32
+#include <process.h>
+#else
+#include <spawn.h>
+#include <sys/wait.h>
+extern char **environ;
+#endif
 
 extern "C" int quickheap_c_api_smoke(void);
 
@@ -93,12 +105,14 @@ template <typename T, bool KeyValue> class Queue {
             const auto [key, payload] = *entry;
             if (std::cmp_less(payload, 0) ||
                 std::cmp_greater_equal(payload, inserted_keys_.size())) {
-                ADD_FAILURE() << "returned payload was never inserted";
+                FAIL_CHECK("returned payload was never inserted");
                 return key;
             }
             const auto index = static_cast<std::size_t>(payload);
-            EXPECT_FALSE(consumed_[index]) << "payload returned twice";
-            EXPECT_EQ(key, inserted_keys_[index]) << "key/payload association changed";
+            INFO("payload returned twice");
+            CHECK_FALSE(consumed_[index]);
+            INFO("key/payload association changed");
+            CHECK(key == inserted_keys_[index]);
             consumed_[index] = true;
             return key;
         } else {
@@ -129,19 +143,20 @@ template <typename T, bool KeyValue, Pattern P> void sort_workload() {
             heap.push(key);
             expected.push_back(key);
         }
-        EXPECT_EQ(heap.size(), count);
-        EXPECT_EQ(heap.empty(), count == 0);
-        EXPECT_GE(heap.capacity(), heap.size());
+        CHECK(heap.size() == count);
+        CHECK(heap.empty() == (count == 0));
+        CHECK(heap.capacity() >= heap.size());
         const auto filled_capacity = heap.capacity();
 
         std::sort(expected.begin(), expected.end());
         for (const auto key : expected) {
-            ASSERT_EQ(heap.pop(), std::optional<T>(key));
+            REQUIRE(heap.pop() == std::optional<T>(key));
         }
-        EXPECT_EQ(heap.size(), 0U);
-        EXPECT_TRUE(heap.empty());
-        EXPECT_EQ(heap.pop(), std::nullopt);
-        EXPECT_GE(heap.capacity(), filled_capacity) << "drain released reserved slots";
+        CHECK(heap.size() == 0U);
+        CHECK(heap.empty());
+        CHECK(heap.pop() == std::nullopt);
+        INFO("drain released reserved slots");
+        CHECK(heap.capacity() >= filled_capacity);
     }
 }
 
@@ -163,117 +178,134 @@ template <typename T, bool KeyValue, Pattern P> void wiggle_workload() {
             auto key = generator.next();
             heap.push(key);
             reference.push(key);
-            ASSERT_EQ(heap.pop(), pop_reference());
+            REQUIRE(heap.pop() == pop_reference());
             key = generator.next();
             heap.push(key);
             reference.push(key);
         }
-        EXPECT_EQ(heap.size(), count);
-        EXPECT_GE(heap.capacity(), heap.size());
+        CHECK(heap.size() == count);
+        CHECK(heap.capacity() >= heap.size());
         const auto filled_capacity = heap.capacity();
 
         for (std::size_t i = 0; i < count; ++i) {
-            ASSERT_EQ(heap.pop(), pop_reference());
+            REQUIRE(heap.pop() == pop_reference());
             const auto key = generator.next();
             heap.push(key);
             reference.push(key);
-            ASSERT_EQ(heap.pop(), pop_reference());
+            REQUIRE(heap.pop() == pop_reference());
         }
-        EXPECT_TRUE(reference.empty());
-        EXPECT_TRUE(heap.empty());
-        EXPECT_EQ(heap.size(), 0U);
-        EXPECT_EQ(heap.pop(), std::nullopt);
-        EXPECT_GE(heap.capacity(), filled_capacity) << "drain released reserved slots";
+        CHECK(reference.empty());
+        CHECK(heap.empty());
+        CHECK(heap.size() == 0U);
+        CHECK(heap.pop() == std::nullopt);
+        INFO("drain released reserved slots");
+        CHECK(heap.capacity() >= filled_capacity);
     }
 }
 
-template <typename T> class QuickHeapTypedTest : public ::testing::Test {};
-using IntegerTypes = ::testing::Types<std::int32_t, std::uint32_t,
-                                      std::int64_t, std::uint64_t>;
-TYPED_TEST_SUITE(QuickHeapTypedTest, IntegerTypes);
-
-TYPED_TEST(QuickHeapTypedTest, SortRandomKeys) {
-    sort_workload<TypeParam, false, Pattern::Random>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortRandomKeys", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    sort_workload<TestType, false, Pattern::Random>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, SortRandomKeyValues) {
-    sort_workload<TypeParam, true, Pattern::Random>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortRandomKeyValues", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    sort_workload<TestType, true, Pattern::Random>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, WiggleRandomKeys) {
-    wiggle_workload<TypeParam, false, Pattern::Random>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleRandomKeys", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    wiggle_workload<TestType, false, Pattern::Random>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, WiggleRandomKeyValues) {
-    wiggle_workload<TypeParam, true, Pattern::Random>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleRandomKeyValues", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    wiggle_workload<TestType, true, Pattern::Random>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, SortIncreasingKeys) {
-    sort_workload<TypeParam, false, Pattern::Increasing>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortIncreasingKeys", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    sort_workload<TestType, false, Pattern::Increasing>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, SortIncreasingKeyValues) {
-    sort_workload<TypeParam, true, Pattern::Increasing>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortIncreasingKeyValues", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    sort_workload<TestType, true, Pattern::Increasing>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, WiggleIncreasingKeys) {
-    wiggle_workload<TypeParam, false, Pattern::Increasing>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleIncreasingKeys", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    wiggle_workload<TestType, false, Pattern::Increasing>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, WiggleIncreasingKeyValues) {
-    wiggle_workload<TypeParam, true, Pattern::Increasing>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleIncreasingKeyValues", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    wiggle_workload<TestType, true, Pattern::Increasing>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, SortDecreasingKeys) {
-    sort_workload<TypeParam, false, Pattern::Decreasing>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortDecreasingKeys", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    sort_workload<TestType, false, Pattern::Decreasing>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, SortDecreasingKeyValues) {
-    sort_workload<TypeParam, true, Pattern::Decreasing>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortDecreasingKeyValues", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    sort_workload<TestType, true, Pattern::Decreasing>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, WiggleDecreasingKeys) {
-    wiggle_workload<TypeParam, false, Pattern::Decreasing>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleDecreasingKeys", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    wiggle_workload<TestType, false, Pattern::Decreasing>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, WiggleDecreasingKeyValues) {
-    wiggle_workload<TypeParam, true, Pattern::Decreasing>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleDecreasingKeyValues", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    wiggle_workload<TestType, true, Pattern::Decreasing>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, SortMostlyMaxKeys) {
-    sort_workload<TypeParam, false, Pattern::MostlyMax>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortMostlyMaxKeys", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    sort_workload<TestType, false, Pattern::MostlyMax>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, SortMostlyMaxKeyValues) {
-    sort_workload<TypeParam, true, Pattern::MostlyMax>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortMostlyMaxKeyValues", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    sort_workload<TestType, true, Pattern::MostlyMax>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, WiggleMostlyMaxKeys) {
-    wiggle_workload<TypeParam, false, Pattern::MostlyMax>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleMostlyMaxKeys", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    wiggle_workload<TestType, false, Pattern::MostlyMax>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, WiggleMostlyMaxKeyValues) {
-    wiggle_workload<TypeParam, true, Pattern::MostlyMax>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleMostlyMaxKeyValues", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    wiggle_workload<TestType, true, Pattern::MostlyMax>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, SortMostlyMinKeys) {
-    sort_workload<TypeParam, false, Pattern::MostlyMin>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortMostlyMinKeys", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    sort_workload<TestType, false, Pattern::MostlyMin>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, SortMostlyMinKeyValues) {
-    sort_workload<TypeParam, true, Pattern::MostlyMin>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortMostlyMinKeyValues", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    sort_workload<TestType, true, Pattern::MostlyMin>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, WiggleMostlyMinKeys) {
-    wiggle_workload<TypeParam, false, Pattern::MostlyMin>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleMostlyMinKeys", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    wiggle_workload<TestType, false, Pattern::MostlyMin>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, WiggleMostlyMinKeyValues) {
-    wiggle_workload<TypeParam, true, Pattern::MostlyMin>();
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleMostlyMinKeyValues", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    wiggle_workload<TestType, true, Pattern::MostlyMin>();
 }
 
-TYPED_TEST(QuickHeapTypedTest, KeyWrapperMovesAndRetainsCapacity) {
-    using T = TypeParam;
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.KeyWrapperMovesAndRetainsCapacity", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    using T = TestType;
     using Heap = quickheap::Heap<T>;
     static_assert(!std::is_copy_constructible_v<Heap>);
     static_assert(!std::is_copy_assignable_v<Heap>);
@@ -286,25 +318,26 @@ TYPED_TEST(QuickHeapTypedTest, KeyWrapperMovesAndRetainsCapacity) {
     source.push(static_cast<T>(2));
     const auto capacity = source.capacity();
     Heap moved(std::move(source));
-    EXPECT_EQ(moved.capacity(), capacity);
-    EXPECT_EQ(moved.size(), 3U);
+    CHECK(moved.capacity() == capacity);
+    CHECK(moved.size() == 3U);
 
     Heap destination;
     destination.push(static_cast<T>(99));
     destination = std::move(moved);
     auto &alias = destination;
     destination = std::move(alias);
-    EXPECT_EQ(destination.capacity(), capacity);
-    EXPECT_EQ(destination.pop(), static_cast<T>(1));
-    EXPECT_EQ(destination.pop(), static_cast<T>(2));
-    EXPECT_EQ(destination.pop(), static_cast<T>(3));
-    EXPECT_TRUE(destination.empty());
-    EXPECT_EQ(destination.try_pop(), std::nullopt);
-    EXPECT_GE(destination.capacity(), capacity);
+    CHECK(destination.capacity() == capacity);
+    CHECK(destination.pop() == static_cast<T>(1));
+    CHECK(destination.pop() == static_cast<T>(2));
+    CHECK(destination.pop() == static_cast<T>(3));
+    CHECK(destination.empty());
+    CHECK(destination.try_pop() == std::nullopt);
+    CHECK(destination.capacity() >= capacity);
 }
 
-TYPED_TEST(QuickHeapTypedTest, KeyValueWrapperMovesAndRetainsCapacity) {
-    using T = TypeParam;
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.KeyValueWrapperMovesAndRetainsCapacity", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    using T = TestType;
     using Heap = quickheap::KvSimdQuickHeap<T>;
     static_assert(!std::is_copy_constructible_v<Heap>);
     static_assert(!std::is_copy_assignable_v<Heap>);
@@ -317,27 +350,28 @@ TYPED_TEST(QuickHeapTypedTest, KeyValueWrapperMovesAndRetainsCapacity) {
     source.push(static_cast<T>(2), static_cast<T>(20));
     const auto capacity = source.capacity();
     Heap moved(std::move(source));
-    EXPECT_EQ(moved.capacity(), capacity);
-    EXPECT_EQ(moved.size(), 3U);
+    CHECK(moved.capacity() == capacity);
+    CHECK(moved.size() == 3U);
 
     Heap destination;
     destination.push(static_cast<T>(99), static_cast<T>(990));
     destination = std::move(moved);
     auto &alias = destination;
     destination = std::move(alias);
-    EXPECT_EQ(destination.capacity(), capacity);
-    EXPECT_EQ(destination.pop(), (std::pair<T, T>{1, 10}));
-    EXPECT_EQ(destination.pop(), (std::pair<T, T>{2, 20}));
-    EXPECT_EQ(destination.pop(), (std::pair<T, T>{3, 30}));
-    EXPECT_TRUE(destination.empty());
-    EXPECT_EQ(destination.try_pop(), std::nullopt);
-    EXPECT_GE(destination.capacity(), capacity);
+    CHECK(destination.capacity() == capacity);
+    CHECK(destination.pop() == (std::pair<T, T>{1, 10}));
+    CHECK(destination.pop() == (std::pair<T, T>{2, 20}));
+    CHECK(destination.pop() == (std::pair<T, T>{3, 30}));
+    CHECK(destination.empty());
+    CHECK(destination.try_pop() == std::nullopt);
+    CHECK(destination.capacity() >= capacity);
 }
 
 template <typename T> struct CApi;
 #define QUICKHEAP_C_API(T, HandleType, Prefix)                                  \
     template <> struct CApi<T> {                                               \
         using Handle = HandleType;                                             \
+        static constexpr const char *name = #HandleType;                       \
         static Handle *create() { return Prefix##_new(); }                     \
         static void destroy(Handle *h) { Prefix##_free(h); }                   \
         static void push(Handle *h, T x) { Prefix##_push(h, x); }               \
@@ -355,39 +389,153 @@ QUICKHEAP_C_API(std::int64_t, QuickHeapI64, quickheap_i64)
 QUICKHEAP_C_API(std::uint64_t, QuickHeapU64, quickheap_u64)
 #undef QUICKHEAP_C_API
 
-TYPED_TEST(QuickHeapTypedTest, CApiEmptyPopLeavesOutputUntouched) {
-    using Api = CApi<TypeParam>;
+enum class NullOperation { Destroy, Push, Pop, Size, Empty, Capacity, Output };
+
+struct NamedNullOperation {
+    const char *name;
+    NullOperation operation;
+};
+
+constexpr std::array null_operations = {
+    NamedNullOperation{"destroy", NullOperation::Destroy},
+    NamedNullOperation{"push", NullOperation::Push},
+    NamedNullOperation{"pop", NullOperation::Pop},
+    NamedNullOperation{"size", NullOperation::Size},
+    NamedNullOperation{"empty", NullOperation::Empty},
+    NamedNullOperation{"capacity", NullOperation::Capacity},
+    NamedNullOperation{"output", NullOperation::Output},
+};
+
+template <typename T> void run_null_operation(NullOperation operation) {
+    using Api = CApi<T>;
+    switch (operation) {
+    case NullOperation::Destroy:
+        Api::destroy(nullptr);
+        break;
+    case NullOperation::Push:
+        Api::push(nullptr, T{});
+        break;
+    case NullOperation::Pop: {
+        T out{};
+        Api::pop(nullptr, &out);
+        break;
+    }
+    case NullOperation::Size:
+        Api::size(nullptr);
+        break;
+    case NullOperation::Empty:
+        Api::empty(nullptr);
+        break;
+    case NullOperation::Capacity:
+        Api::capacity(nullptr);
+        break;
+    case NullOperation::Output: {
+        auto *heap = Api::create();
+        Api::pop(heap, nullptr);
+        Api::destroy(heap);
+        break;
+    }
+    }
+}
+
+struct NullTestType {
+    const char *name;
+    void (*run)(NullOperation);
+};
+
+constexpr std::array null_test_types = {
+    NullTestType{CApi<std::int32_t>::name, run_null_operation<std::int32_t>},
+    NullTestType{CApi<std::uint32_t>::name, run_null_operation<std::uint32_t>},
+    NullTestType{CApi<std::int64_t>::name, run_null_operation<std::int64_t>},
+    NullTestType{CApi<std::uint64_t>::name, run_null_operation<std::uint64_t>},
+};
+
+constexpr const char *null_test_argument = "--quickheap-null-test";
+constexpr int abort_exit_code = 86;
+const char *test_executable = nullptr;
+
+int run_null_test_child(std::string_view type_name,
+                        std::string_view operation_name) {
+    const auto type = std::find_if(null_test_types.begin(), null_test_types.end(),
+                                  [type_name](const auto &entry) {
+                                      return type_name == entry.name;
+                                  });
+    const auto operation = std::find_if(
+        null_operations.begin(), null_operations.end(),
+        [operation_name](const auto &entry) { return operation_name == entry.name; });
+    if (type == null_test_types.end() || operation == null_operations.end()) {
+        return 2;
+    }
+    if (std::signal(SIGABRT, [](int) { std::_Exit(abort_exit_code); }) == SIG_ERR) {
+        return 2;
+    }
+    type->run(operation->operation);
+    return 0;
+}
+
+int null_operation_exit_code(const char *type_name, const char *operation_name) {
+#ifdef _WIN32
+    const char *arguments[] = {"quickheap_tests", null_test_argument, type_name,
+                              operation_name, nullptr};
+    return static_cast<int>(_spawnvp(_P_WAIT, test_executable, arguments));
+#else
+    char *arguments[] = {const_cast<char *>(test_executable),
+                         const_cast<char *>(null_test_argument),
+                         const_cast<char *>(type_name),
+                         const_cast<char *>(operation_name), nullptr};
+    pid_t child;
+    if (posix_spawnp(&child, test_executable, nullptr, nullptr, arguments,
+                     environ) != 0) {
+        return -1;
+    }
+    int status;
+    pid_t waited;
+    do {
+        waited = waitpid(child, &status, 0);
+    } while (waited == -1 && errno == EINTR);
+    return waited == child && WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+#endif
+}
+
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.CApiEmptyPopLeavesOutputUntouched", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    using Api = CApi<TestType>;
     auto *heap = Api::create();
-    ASSERT_NE(heap, nullptr);
-    TypeParam out = static_cast<TypeParam>(71);
-    EXPECT_FALSE(Api::pop(heap, &out));
-    EXPECT_EQ(out, static_cast<TypeParam>(71));
-    Api::push(heap, static_cast<TypeParam>(4));
-    EXPECT_TRUE(Api::pop(heap, &out));
-    EXPECT_EQ(out, static_cast<TypeParam>(4));
-    out = static_cast<TypeParam>(71);
-    EXPECT_FALSE(Api::pop(heap, &out));
-    EXPECT_EQ(out, static_cast<TypeParam>(71));
+    REQUIRE(heap != nullptr);
+    TestType out = static_cast<TestType>(71);
+    CHECK_FALSE(Api::pop(heap, &out));
+    CHECK(out == static_cast<TestType>(71));
+    Api::push(heap, static_cast<TestType>(4));
+    CHECK(Api::pop(heap, &out));
+    CHECK(out == static_cast<TestType>(4));
+    out = static_cast<TestType>(71);
+    CHECK_FALSE(Api::pop(heap, &out));
+    CHECK(out == static_cast<TestType>(71));
     Api::destroy(heap);
 }
 
-TYPED_TEST(QuickHeapTypedTest, CApiRejectsEveryNullPointer) {
-    using Api = CApi<TypeParam>;
-    const auto expect_abort = [](auto operation) {
-        EXPECT_EXIT({
-            std::signal(SIGABRT, [](int) { std::_Exit(86); });
-            operation();
-        }, ::testing::ExitedWithCode(86), "");
-    };
-    expect_abort([] { Api::destroy(nullptr); });
-    expect_abort([] { Api::push(nullptr, TypeParam{}); });
-    expect_abort([] { TypeParam out{}; Api::pop(nullptr, &out); });
-    expect_abort([] { Api::size(nullptr); });
-    expect_abort([] { Api::empty(nullptr); });
-    expect_abort([] { Api::capacity(nullptr); });
-    expect_abort([] { auto* heap = Api::create(); Api::pop(heap, nullptr); });
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.CApiRejectsEveryNullPointer", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    for (const auto &operation : null_operations) {
+        CAPTURE(operation.name);
+        CHECK(null_operation_exit_code(CApi<TestType>::name, operation.name) ==
+              abort_exit_code);
+    }
 }
 
-TEST(CApiFromC, AllFourIntegerTypes) { EXPECT_EQ(quickheap_c_api_smoke(), 0); }
+TEST_CASE("CApiFromC.AllFourIntegerTypes", "[quickheap][c-api]") {
+    CHECK(quickheap_c_api_smoke() == 0);
+}
 
+}
+
+int main(int argc, char *argv[]) {
+    test_executable = argv[0];
+    if (argc > 1 && std::string_view(argv[1]) == null_test_argument) {
+        if (argc != 4) {
+            return 2;
+        }
+        return run_null_test_child(argv[2], argv[3]);
+    }
+    return Catch::Session().run(argc, argv);
 }

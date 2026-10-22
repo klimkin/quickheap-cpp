@@ -1,18 +1,18 @@
 #include "quickheap.hpp"
 
-#include <benchmark/benchmark.h>
+#include <catch2/benchmark/catch_benchmark.hpp>
+#include <catch2/catch_template_test_macros.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <exception>
 #include <functional>
 #include <limits>
 #include <optional>
 #include <queue>
 #include <random>
 #include <string>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -313,85 +313,85 @@ bool replay(const Script<T> &script, Q &queue, std::vector<T> *outputs) {
 }
 
 template <typename Q, typename T>
-void run_benchmark(benchmark::State &state, Workload workload) {
-    try {
-        const std::size_t n = static_cast<std::size_t>(state.range(0));
-        const Plan<T> plan = make_plan<T>(workload, n);
-        if (!plan.error.empty()) {
-            state.SkipWithError(plan.error.c_str());
-            return;
+void run_benchmark(const std::string &name, const Plan<T> &plan) {
+    BENCHMARK_ADVANCED(std::string(name))(Catch::Benchmark::Chronometer meter) {
+        struct Run {
+            Q queue;
+            std::vector<T> outputs;
+            bool replay_ok = false;
+        };
+        std::vector<Run> runs(static_cast<std::size_t>(meter.runs()));
+        for (auto &run : runs) {
+            run.outputs.resize(plan.timed.expected_pops.size());
+            REQUIRE(replay(plan.setup, run.queue, static_cast<std::vector<T> *>(nullptr)));
+            REQUIRE(run.queue.size() == plan.setup_size);
         }
-        for (auto _ : state) {
-            (void)_;
-            state.PauseTiming();
-            {
-                Q queue;
-                std::vector<T> outputs(plan.timed.expected_pops.size());
-                if (!replay(plan.setup, queue, static_cast<std::vector<T> *>(nullptr)) ||
-                    queue.size() != plan.setup_size) {
-                    state.SkipWithError("setup output or size mismatch");
-                    state.ResumeTiming();
-                    break;
-                }
-                state.ResumeTiming();
-                const bool replay_ok = replay(plan.timed, queue, &outputs);
-                benchmark::DoNotOptimize(outputs.data());
-                benchmark::ClobberMemory();
-                state.PauseTiming();
-                if (!replay_ok || !queue.valid() || queue.size() != plan.final_size ||
-                    outputs != plan.timed.expected_pops) {
-                    state.SkipWithError("timed output, payload, or size mismatch");
-                    state.ResumeTiming();
-                    break;
-                }
-            }
-            state.ResumeTiming();
+
+        meter.measure([&](int index) {
+            auto &run = runs[static_cast<std::size_t>(index)];
+            run.replay_ok = replay(plan.timed, run.queue, &run.outputs);
+            return run.replay_ok;
+        });
+
+        for (const auto &run : runs) {
+            REQUIRE(run.replay_ok);
+            REQUIRE(run.queue.valid());
+            REQUIRE(run.queue.size() == plan.final_size);
+            REQUIRE(run.outputs == plan.timed.expected_pops);
         }
-        const auto iterations = static_cast<std::int64_t>(state.iterations());
-        state.SetItemsProcessed(iterations *
-                                static_cast<std::int64_t>(plan.timed.operations.size()));
-        state.counters["pushes"] = static_cast<double>(iterations) *
-                                   static_cast<double>(plan.timed.pushes.size());
-        state.counters["pops"] = static_cast<double>(iterations) *
-                                 static_cast<double>(plan.timed.expected_pops.size());
-    } catch (const std::exception &error) {
-        state.SkipWithError(error.what());
+    };
+}
+
+template <typename T>
+void run_workload(const char *name, Workload workload, int max_log2) {
+    for (std::size_t n = 1 << 10; n <= (std::size_t{1} << max_log2); n *= 4) {
+        DYNAMIC_SECTION(std::to_string(n)) {
+            const Plan<T> plan = make_plan<T>(workload, n);
+            INFO(plan.error);
+            REQUIRE(plan.error.empty());
+            const std::string prefix = std::string(name) + "/" +
+                                       (sizeof(T) == 4 ? "u32" : "u64") + "/";
+            const std::string suffix = "/" + std::to_string(n) +
+                " pushes=" + std::to_string(plan.timed.pushes.size()) +
+                " pops=" + std::to_string(plan.timed.expected_pops.size());
+            run_benchmark<KeyQuickHeap<T>>(prefix + "quickheap" + suffix, plan);
+            run_benchmark<StdKeyHeap<T>>(prefix + "std_priority_queue" + suffix, plan);
+            run_benchmark<KvQuickHeap<T>>(prefix + "kv_quickheap" + suffix, plan);
+            run_benchmark<StdKvHeap<T>>(prefix + "kv_std_priority_queue" + suffix, plan);
+        }
     }
 }
 
-template <typename T> void register_workload(const char *name, Workload workload,
-                                              int max_log2) {
-    const std::string prefix = std::string(name) + "/" +
-                               (sizeof(T) == 4 ? "u32" : "u64");
-    const auto register_one = [&](const char *heap_name, auto heap_tag) {
-        using Q = typename decltype(heap_tag)::type;
-        benchmark::RegisterBenchmark(
-            (prefix + "/" + heap_name).c_str(),
-            [workload](benchmark::State &state) { run_benchmark<Q, T>(state, workload); })
-            ->RangeMultiplier(4)
-            ->Range(1 << 10, 1 << max_log2);
-    };
-    register_one("quickheap", std::type_identity<KeyQuickHeap<T>>{});
-    register_one("std_priority_queue", std::type_identity<StdKeyHeap<T>>{});
-    register_one("kv_quickheap", std::type_identity<KvQuickHeap<T>>{});
-    register_one("kv_std_priority_queue", std::type_identity<StdKvHeap<T>>{});
+TEMPLATE_TEST_CASE("HeapSort", "[benchmark]", std::uint32_t, std::uint64_t) {
+    run_workload<TestType>("HeapSort", Workload::HeapSort, 20);
 }
 
-template <typename T> void register_type() {
-    register_workload<T>("HeapSort", Workload::HeapSort, 20);
-    register_workload<T>("MonotoneConstantSize", Workload::MonotoneConstantSize, 20);
-    register_workload<T>("RandomConstantSize", Workload::RandomConstantSize, 20);
-    register_workload<T>("MonotoneWiggle", Workload::MonotoneWiggle, 18);
-    register_workload<T>("RandomWiggle", Workload::RandomWiggle, 18);
-    register_workload<T>("GeometricMonotoneWiggle", Workload::GeometricMonotoneWiggle, 18);
-    register_workload<T>("WorstCaseDescending", Workload::WorstCaseDescending, 20);
-    register_workload<T>("MostlyPushDecreasing", Workload::MostlyPushDecreasing, 20);
+TEMPLATE_TEST_CASE("MonotoneConstantSize", "[benchmark]", std::uint32_t, std::uint64_t) {
+    run_workload<TestType>("MonotoneConstantSize", Workload::MonotoneConstantSize, 20);
 }
 
-const bool registered = [] {
-    register_type<std::uint32_t>();
-    register_type<std::uint64_t>();
-    return true;
-}();
+TEMPLATE_TEST_CASE("RandomConstantSize", "[benchmark]", std::uint32_t, std::uint64_t) {
+    run_workload<TestType>("RandomConstantSize", Workload::RandomConstantSize, 20);
+}
+
+TEMPLATE_TEST_CASE("MonotoneWiggle", "[benchmark]", std::uint32_t, std::uint64_t) {
+    run_workload<TestType>("MonotoneWiggle", Workload::MonotoneWiggle, 18);
+}
+
+TEMPLATE_TEST_CASE("RandomWiggle", "[benchmark]", std::uint32_t, std::uint64_t) {
+    run_workload<TestType>("RandomWiggle", Workload::RandomWiggle, 18);
+}
+
+TEMPLATE_TEST_CASE("GeometricMonotoneWiggle", "[benchmark]", std::uint32_t, std::uint64_t) {
+    run_workload<TestType>("GeometricMonotoneWiggle", Workload::GeometricMonotoneWiggle, 18);
+}
+
+TEMPLATE_TEST_CASE("WorstCaseDescending", "[benchmark]", std::uint32_t, std::uint64_t) {
+    run_workload<TestType>("WorstCaseDescending", Workload::WorstCaseDescending, 20);
+}
+
+TEMPLATE_TEST_CASE("MostlyPushDecreasing", "[benchmark]", std::uint32_t, std::uint64_t) {
+    run_workload<TestType>("MostlyPushDecreasing", Workload::MostlyPushDecreasing, 20);
+}
 
 }
