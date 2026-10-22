@@ -94,7 +94,10 @@ python3 scripts/differential.py build/Release/test/quickheap_trace
 
 Matrix checks GCC and Clang, static and shared packages, scalar Debug builds,
 ASan, UBSan, TSan, and external C/C++ consumers. Full invocation also checks
-editable consumption and regenerates a lockfile under `build/verify`.
+editable consumption and regenerates a full-feature lockfile under `build/verify`.
+Preflight rejects unknown or duplicate axes and existing Quickheap editables
+before building. Full invocation requires both compilers.
+Run editable operations and verification sequentially within one Conan home.
 Differential checks compare deterministic traces with Rust and Python's
 min-heap oracle. Rust is needed only for this comparison, never for building
 or using the C++ library.

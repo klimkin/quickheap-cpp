@@ -81,6 +81,12 @@ for requested in "${selected[@]}"; do
     fi
 done
 
+editable_refs=$(conan editable list)
+if [[ $'\n'${editable_refs}$'\n' == *$'\nquickheap/0.2.0\n'* ]]; then
+    printf 'quickheap/0.2.0 already registered as editable; remove it before package verification.\n' >&2
+    exit 2
+fi
+
 mkdir -p -- "${build_root}"
 
 run_axis() {
@@ -149,12 +155,8 @@ fi
 
 conan lock create "${root_dir}" \
     -pr:h gcc-native -pr:b "${build_profile}" \
+    -o:h 'quickheap/*:with_benchmarks=True' \
     --lockfile='' --lockfile-out "${build_root}/conan.lock"
-
-if conan editable list | rg -q '^quickheap/0\.2\.0'; then
-    printf 'quickheap/0.2.0 already registered as editable; leave existing registration unchanged.\n' >&2
-    exit 1
-fi
 
 editable_dir="${build_root}/editable"
 mkdir -p -- "${editable_dir}"
