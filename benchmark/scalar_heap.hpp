@@ -67,13 +67,20 @@ public:
         ++size_;
     }
 
+    T pop() {
+        if (size_ == 0) throw std::runtime_error("scalar heap popped while empty");
+        return pop_nonempty(NoObserver{});
+    }
+
     std::optional<T> try_pop() {
-        return pop_with(NoObserver{});
+        if (size_ == 0) return std::nullopt;
+        return pop_nonempty(NoObserver{});
     }
 
     template <class Observer>
     std::optional<T> try_pop(Observer&& observer) {
-        return pop_with(observer);
+        if (size_ == 0) return std::nullopt;
+        return pop_nonempty(observer);
     }
 
     std::size_t size() const noexcept { return size_; }
@@ -263,8 +270,7 @@ private:
     }
 
     template <class Observer>
-    std::optional<T> pop_with(Observer&& observer) {
-        if (size_ == 0) return std::nullopt;
+    T pop_nonempty(Observer&& observer) {
         while (buckets_[pivots_.size()].size() > 1) split_terminal(observer);
         auto& bucket = buckets_[pivots_.size()];
         const auto key = bucket.back();
