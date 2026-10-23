@@ -190,7 +190,9 @@ private:
 
     std::size_t select_pivot(std::vector<T>& bucket) {
         if constexpr (Perfect) {
-            std::stable_sort(bucket.begin(), bucket.end());
+            if (!std::is_sorted(bucket.begin(), bucket.end())) {
+                std::stable_sort(bucket.begin(), bucket.end());
+            }
             return (bucket.size() - 1) / 2;
         } else {
             std::array<Sample, M> samples{};
