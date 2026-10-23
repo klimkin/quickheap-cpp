@@ -1,5 +1,6 @@
 #include "graph_workloads.hpp"
 #include "heap_catalog.hpp"
+#include "backend.hpp"
 
 #include <algorithm>
 #include <charconv>
@@ -20,7 +21,9 @@ struct Options {
     std::size_t repeats = 3;
     std::string heap;
     std::string workload;
+    std::string backend = "native";
     bool help = false;
+    bool verify_only = false;
 };
 
 Options parse_options(int argc, char **argv) {
@@ -30,7 +33,9 @@ Options parse_options(int argc, char **argv) {
         const std::string_view argument = argv[i];
         if (argument == "--help" || argument == "-h") {
             options.help = true;
-        } else if (argument == "--repeat" || argument == "--heap" || argument == "--workload") {
+        } else if (argument == "--verify-only") {
+            options.verify_only = true;
+        } else if (argument == "--repeat" || argument == "--heap" || argument == "--workload" || argument == "--backend") {
             if (++i == argc) throw std::invalid_argument("missing value for " + std::string(argument));
             const std::string_view value = argv[i];
             if (argument == "--repeat") {
@@ -38,6 +43,8 @@ Options parse_options(int argc, char **argv) {
                 if (error != std::errc{} || end != value.data() + value.size() || options.repeats == 0) {
                     throw std::invalid_argument("--repeat requires positive integer");
                 }
+            } else if (argument == "--backend") {
+                options.backend = value;
             } else if (argument == "--heap") {
                 const auto heap = std::find_if(queue_catalog.begin(), queue_catalog.end(),
                     [value](const auto &item) { return item.name == value; });
@@ -89,7 +96,26 @@ std::string csv_field(std::string_view value) {
 template <class Queue, class Workload>
 void run_workload(const Workload &workload, const Graph &graph,
                   const std::filesystem::path &path, std::string_view heap,
-                  std::string_view name, std::size_t repeats) {
+                  std::string_view name, std::size_t repeats, bool verify_only = false) {
+    if (verify_only) {
+        auto trial = workload.template prepare<Queue>(Queue(graph.edge_count() + 1));
+        trial.execute();
+        workload.verify(trial);
+        const auto counts = trial.counts();
+        std::cout << "counts," << name << ',' << counts.pushes << ',' << counts.pops << '\n';
+        if constexpr (requires { trial.distances(); }) {
+            std::cout << "distances";
+            for (const auto distance : trial.distances()) std::cout << ',' << distance;
+            std::cout << '\n';
+        } else {
+            std::cout << "parents";
+            for (const auto parent : trial.parents()) std::cout << ',' << parent;
+            std::cout << "\nweight," << trial.weight() << "\ntree_edges";
+            for (const auto edge : trial.tree_edges()) std::cout << ',' << edge;
+            std::cout << '\n';
+        }
+        return;
+    }
     {
         auto warmup = workload.template prepare<Queue>(Queue(graph.edge_count() + 1));
         warmup.execute();
@@ -160,7 +186,7 @@ void run_heaps(const Workload &workload, const Graph &graph,
         }
         visit_queue<std::uint64_t, false>(heap.kind, [&]<class Queue>() {
             if constexpr (std::is_same_v<typename Queue::Item, std::uint64_t>)
-                run_workload<GraphQueue<Queue>>(workload, graph, path, heap.name, name, options.repeats);
+                run_workload<GraphQueue<Queue>>(workload, graph, path, heap.name, name, options.repeats, options.verify_only);
         });
     }
 }
@@ -176,13 +202,15 @@ int main(int argc, char **argv) {
                          "  --heap HEAP                Key-only queue, default all available\n"
                          "  --workload WORKLOAD        Dijkstra or Prim, default both\n"
                          "  --help                     Show help\n"
+                         "  --verify-only              Untimed results and queue counts\n"
                          "Default input directory: input/\n"
                          "Source vertex: 0. Prim uses minimum-edge undirected conversion.\n"
                          "Dijkstra rejects candidate distances >= UINT32_MAX.\n";
             return 0;
         }
+        select_backend(options.backend);
         const auto paths = graph_paths(options.path);
-        std::cout << "heap,graph,workload,vertices,edges,push_count,pop_count,repeat,nanos\n";
+        if (!options.verify_only) std::cout << "heap,graph,workload,vertices,edges,push_count,pop_count,repeat,nanos\n";
         for (const auto &path : paths) {
             const auto graph = Graph::from_dimacs(path);
             if (options.workload.empty() || options.workload == "Dijkstra") {

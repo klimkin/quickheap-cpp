@@ -30,6 +30,9 @@ class BenchmarkTestPackage(ConanFile):
             ("quickheap_bench", ["--min", "5", "--max", "5", "--repeat", "1"]),
             ("quickheap_bench_graph", [os.path.join(assets, "data", "smoke.gr"), "--repeat", "1"]),
             ("quickheap_experiments", ["--mode", "variants", "--min", "8", "--max", "8", "--repeat", "1"]),
+            ("quickheap_fixture", ["--inspect", os.path.join(assets, "fixtures", "HeapSort-i32-n8.qhf")]),
+            ("quickheap_bench", ["--fixture", os.path.join(assets, "fixtures", "MonotoneWiggle-i64-n8.qhf"),
+                                 "--heap", "std_priority_queue", "--repeat", "1", "--warmup", "0"]),
         )
         for name, arguments in commands:
             output = io.StringIO()
@@ -39,7 +42,8 @@ class BenchmarkTestPackage(ConanFile):
             rows = list(csv.DictReader(io.StringIO(output.getvalue())))
             if not rows or any(None in row or None in row.values() for row in rows):
                 raise RuntimeError(name + " produced invalid packaged CSV")
-        for path in ("run-all.sh", "README.md", "evals/plot.py", "evals/graph_weights.py"):
+        for path in ("run-all.sh", "README.md", "PROTOCOL.md", "COVERAGE.md", "protocol.json", "verify.py",
+                     "evals/plot.py", "evals/graph_weights.py"):
             if not os.path.isfile(os.path.join(assets, path)):
                 raise RuntimeError("missing benchmark asset " + path)
         table = io.StringIO()

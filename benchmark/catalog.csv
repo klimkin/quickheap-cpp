@@ -1,0 +1,75 @@
+upstream_mode,upstream_configuration,cpp_configuration,status,gap
+plots,production_AVX2,quickheap_avx2,port,backend trace required
+plots,production_AVX512,quickheap_avx512,port,host execution unavailable
+plots,scalar_median3_linear,scalar_median3_linear,paired contract,
+plots,development_AVX2,experimental_simd,substitute,development flat parameters
+plots,development_AVX512,experimental_simd,substitute,development flat parameters
+plots,SequenceHeap,sequence_heap,exact source adapter,
+plots,S3Q,s3q,exact source adapter,
+plots,OriginalQuickHeap,original_quickheap,exact source adapter,
+plots,RadixFFI,external_radix_heap,exact source adapter,
+plots,BinaryHeap,std_priority_queue,standard library substitute,
+plots,OrxDary8,dary8,declared substitute,Orx implementation
+plots,WeakHeap,weak_heap,algorithm counterpart,unproved historical counts
+comparisons,scalar_median1_linear,scalar_median1_linear,paired contract,
+comparisons,scalar_median3_linear,scalar_median3_linear,paired contract,
+comparisons,scalar_perfect_linear,scalar_perfect_linear,paired contract,
+comparisons,scalar_median1_binary,scalar_median1_binary,paired contract,
+comparisons,scalar_median3_binary,scalar_median3_binary,paired contract,
+comparisons,scalar_perfect_binary,scalar_perfect_binary,paired contract,
+comparisons,SequenceHeap,sequence_heap,tracked gap,exact count instrumentation
+comparisons,S3Q,s3q,tracked gap,exact count instrumentation
+comparisons,OriginalQuickHeap,original_quickheap,tracked gap,exact count instrumentation
+comparisons,BinaryHeap,std_priority_queue,tracked gap,standard library count instrumentation
+comparisons,OrxDary8,dary8,declared substitute,Orx implementation
+comparisons,WeakHeap,weak_heap,algorithm counterpart,unproved historical counts
+table,production_AVX2,quickheap_avx2,port,
+table,production_AVX512,quickheap_avx512,port,host execution unavailable
+table,development_AVX2,experimental_simd,declared substitute,flat parameters
+table,development_AVX512,experimental_simd,declared substitute,flat parameters
+ablation,development_AVX2_median1,simd_median1,declared substitute,development engine
+ablation,development_AVX2_median3,simd_median3,declared substitute,development engine
+ablation,development_AVX2_median5,simd_median5,declared substitute,development engine
+ablation,development_AVX512_median1,simd_median1,declared substitute,development engine
+ablation,development_AVX512_median3,simd_median3,declared substitute,development engine
+ablation,development_AVX512_median5,simd_median5,declared substitute,development engine
+memory,production_default_i64,quickheap,port,paired memory reporting deferred
+simd,production_AVX512,quickheap_avx512,port,host execution unavailable
+simd,flat256_partition2,experimental_simd,declared substitute,exact flat parameters
+simd,flat256_partition3,median3_partition3,declared substitute,exact flat parameters
+simd,flat256_partition4,median3_partition4,declared substitute,exact flat parameters
+neon,flat128_i64,experimental_simd,declared substitute,Arm runtime unavailable
+neon,list112_capacity128_i64,blocked112_partition2,declared substitute,Arm runtime unavailable
+graph,Dijkstra,graph_Dijkstra,paired C++ contract,
+graph,Prim_directed,graph_Prim_undirected,declared C++ semantics,historical directed result identity distinct
+run,dev_AVX2_median1_K16_binary,experimental_simd,declared substitute,development engine
+run,dev_AVX2_median1_K16_linear,experimental_simd,declared substitute,development engine
+run,dev_AVX2_median3_K16_binary,experimental_simd,declared substitute,development engine
+run,dev_AVX2_median3_K16_linear,experimental_simd,declared substitute,development engine
+run,dev_AVX2_median1_K8_binary,experimental_simd,declared substitute,development engine
+run,dev_AVX2_median1_K8_linear,experimental_simd,declared substitute,development engine
+run,dev_AVX2_median3_K8_binary,experimental_simd,declared substitute,development engine
+run,dev_AVX2_median3_K8_linear,experimental_simd,declared substitute,development engine
+run,dev_AVX2_median5_K16,experimental_simd,declared substitute,development engine
+run,dev_AVX2_cbrt1_K16,experimental_cbrt,declared substitute,development engine
+run,dev_AVX2_cbrt2_K16,experimental_cbrt,declared substitute,development engine
+run,dev_AVX2_cbrt4_K16,experimental_cbrt,declared substitute,development engine
+run,dev_AVX2_log1_K16,experimental_log2,declared substitute,development engine
+run,dev_AVX2_log2_K16,experimental_log2,declared substitute,development engine
+run,dev_AVX2_log4_K16,experimental_log2,declared substitute,development engine
+run,dev_AVX512_median1_K16,experimental_simd,declared substitute,development engine
+graph,production_AVX2_u64,quickheap --backend avx2,port,
+graph,production_AVX512_u64,quickheap --backend avx512,port,host execution unavailable
+graph,development_AVX2_u64,experimental_simd,declared substitute,development engine
+graph,development_AVX512_u64,experimental_simd,declared substitute,development engine
+graph,scalar_median3_linear_u64,scalar_median3_linear,paired C++ contract,
+graph,SequenceHeap_u64,sequence_heap,exact source adapter,
+graph,S3Q_u64,s3q,exact source adapter,
+graph,OriginalQuickHeap_u64,original_quickheap,exact source adapter,
+graph,RadixFFI_u64,external_radix_heap,exact source adapter,positive Dijkstra packed keys only
+graph,BinaryHeap_u64,std_priority_queue,standard library substitute,
+graph,OrxDary8_u64,dary8,declared substitute,Orx implementation
+graph,WeakHeap_u64,weak_heap,algorithm counterpart,historical count parity unproved
+rebalancing,dev_AVX512_best,experiment_best,declared substitute,exact initial layers and rebalancing policy
+rebalancing,dev_AVX512_worst,experiment_worst,declared substitute,exact initial layers and rebalancing policy
+rebalancing,dev_AVX512_real,experiment_flat,declared substitute,exact initial layers and rebalancing policy

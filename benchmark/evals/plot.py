@@ -3,6 +3,7 @@
 
 import argparse
 import csv
+import hashlib
 from dataclasses import dataclass
 import math
 from pathlib import Path
@@ -109,12 +110,22 @@ def read_samples(source, args):
                     raise ValueError(f"{source}: pushes normalization requires graph CSV")
                 denominator = number(row, "push_count", source, line, True)
                 unit += "/push"
+            elif args.normalize == "opslogn":
+                if graph or partition:
+                    raise ValueError(f"{source}: opslogn normalization requires synthetic CSV")
+                denominator = ops * math.log2(n)
+                unit += "/(ops log2 n)"
             elif args.normalize == "nlogn":
                 denominator = n * math.log2(n)
                 unit += "/(n log2 n)"
             if denominator == 0:
                 raise ValueError(f"{source}:{line}: normalization denominator is zero")
             heap = row[heap_column] + (f" [{row['backend']}]" if partition else "")
+            if row.get('protocol'):
+                build = row.get('build', '')
+                if not build or not row.get('fixture_digest'):
+                    raise ValueError(f'{source}:{line}: attributed CSV lacks build or fixture digest')
+                heap += f" [{row['backend']}; {hashlib.sha256(build.encode()).hexdigest()[:12]}; {row['protocol']}]"
             samples.append(Sample(kind, row.get("elem", ""),
                                   heap, row["workload"], row.get("graph", ""),
                                   n, unit, value / denominator))
@@ -197,7 +208,7 @@ def main():
     parser.add_argument("--table", action="store_true", help="write summary CSV to stdout")
     parser.add_argument("--output", type=Path, help="plot path ending in .svg, .png, or .pdf")
     parser.add_argument("--metric", default="nanos", help="numeric column, or comparisons for push plus pop")
-    parser.add_argument("--normalize", choices=("ops", "pushes", "nlogn", "none"), default="ops")
+    parser.add_argument("--normalize", choices=("ops", "pushes", "opslogn", "nlogn", "none"), default="ops")
     parser.add_argument("--heap", action="append", help="include exact heap name; repeat to include more")
     parser.add_argument("--workload", action="append", help="include exact workload name")
     parser.add_argument("--elem", action="append", help="include exact element type")

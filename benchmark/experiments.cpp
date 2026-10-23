@@ -1,4 +1,6 @@
 #include "backend.hpp"
+#include "build_info.hpp"
+#include "direct_workloads.hpp"
 #include "experimental_heap.hpp"
 #include "perf_counters.hpp"
 #include "runner.hpp"
@@ -34,6 +36,9 @@ struct Options {
     bool type_selected = false;
     bool perf = false;
     bool list = false;
+    bool diagnostics = false;
+    std::string fixture;
+    std::string backend = "native";
     std::string workload;
     std::string variant;
 };
@@ -65,7 +70,8 @@ Options options(int argc, char** argv) {
         if (flag == "--help") {
             std::cout << "Usage: quickheap_experiments [--mode variants|ablation|comparisons|rebalancing|partition]\n"
                          "  [--min LOG2] [--max LOG2] [--step LOG2] [--repeat COUNT]\n"
-                         "  [--i32] [--i64] [--u32] [--u64] [--workload NAME] [--variant NAME] [--perf]\n"
+                         "  [--i32] [--i64] [--u32] [--u64] [--workload NAME] [--variant NAME]\n"
+                         "  [--fixture FILE] [--backend native|scalar|avx2|avx512] [--diagnostics] [--perf]\n"
                          "Partition workloads: random, duplicates, ascending. Variants: scalar, simd.\n"
                          "Rebalancing workloads: best, worst, flat. Variants: none, pivot_forgetting, naive_log.\n"
                          "Other modes use synthetic workload names; --list prints their variants.\n";
@@ -84,7 +90,10 @@ Options options(int argc, char** argv) {
         else if (flag == "--repeat") result.repeats = integer(value(), flag);
         else if (flag == "--workload") result.workload = value();
         else if (flag == "--variant") result.variant = value();
-        else if (flag == "--perf") result.perf = true;
+        else if (flag == "--fixture") result.fixture = value();
+        else if (flag == "--backend") result.backend = value();
+        else if (flag == "--diagnostics") result.diagnostics = true;
+        else if (flag == "--perf") { result.perf = true; result.diagnostics = true; }
         else if (flag == "--list") result.list = true;
         else if (flag == "--i32" || flag == "--i64" || flag == "--u32" || flag == "--u64") {
             if (!result.type_selected) result.types.fill(false);
@@ -96,6 +105,9 @@ Options options(int argc, char** argv) {
         result.step <= 0 || result.step > 25 || result.repeats <= 0) {
         throw std::invalid_argument("require 1 <= --min <= --max <= 25, --step in [1,25], --repeat > 0");
     }
+    if (!result.fixture.empty() &&
+        (result.mode == Mode::Partition || result.mode == Mode::Rebalancing))
+        throw std::invalid_argument("--fixture requires variants, ablation, or comparisons mode");
     return result;
 }
 
@@ -208,7 +220,7 @@ Measurement measure(const qb::Plan<T>& plan, qb::Run<Q, T>& run, bool perf) {
 }
 
 template <typename T>
-void row(const Variant& variant, std::size_t n, std::string_view workload, const qb::Plan<T>& plan,
+void legacy_row(const Variant& variant, std::size_t n, std::string_view workload, const qb::Plan<T>& plan,
          int repeat, Measurement measured, std::optional<qb::ExperimentalCounters> counters) {
     std::cout << qb::key_name<T>() << ',' << variant.name << ',' << n << ',' << workload << ','
               << plan.timed.expected_pops.size() << ',' << repeat << ',' << measured.nanos << ',';
@@ -236,54 +248,127 @@ void row(const Variant& variant, std::size_t n, std::string_view workload, const
     if (!std::cout) throw std::runtime_error("failed to write experiment CSV");
 }
 
-template <typename Q, typename T>
-void baseline(const qb::Plan<T>& plan, const Variant& variant, std::size_t n,
-              std::string_view workload, const Options& opts) {
-    {
-        auto warmup = qb::prepare(plan, Q{});
-        measure(plan, warmup, false);
-    }
-    for (int repeat = 0; repeat < opts.repeats; ++repeat) {
-        auto run = qb::prepare(plan, Q{});
-        row(variant, n, workload, plan, repeat, measure(plan, run, opts.perf), std::nullopt);
-    }
+inline constexpr std::string_view paired_csv_header =
+    "elem,heap,n,workload,ops,repeat,nanos,protocol,build,backend,fixture_digest,"
+    "reservation,timer,repeats,warmup,push_comparisons,pop_comparisons";
+inline constexpr std::string_view diagnostic_csv_header =
+    ",partitions,elements_partitioned,rebalances,multi_partitions,blocks_partitioned,"
+    "branch_misses,hw_cache_misses,hw_cache_references";
+
+std::string implementation_name(const Variant& variant) {
+    return variant.baseline == Baseline::Experimental ? "substitute_" + variant.name : variant.name;
 }
 
-template <typename T, template <class, bool> class Heap>
-void experimental_trial(const qb::Plan<T>& plan, const Variant& variant, std::size_t n,
-                        std::string_view workload, const Options& opts) {
-    {
-        auto warmup = qb::prepare(plan, Heap<T, false>(variant.config));
-        measure(plan, warmup, false);
+template <typename T>
+void fixture_row(const qb::Fixture<T>& fixture, const Variant& variant, const Options& opts,
+                 int repeat, const Measurement& measured,
+                 const std::optional<qb::ExperimentalCounters>& counters) {
+    std::cout << qb::key_name<T>() << ',' << implementation_name(variant) << ',' << fixture.n << ','
+              << qb::fixture_workload_name(fixture.workload) << ','
+              << qb::fixture_shape(fixture.workload, fixture.n).timed_count << ',' << repeat << ','
+              << measured.nanos << ',' << qb::fixture_protocol << ',';
+    qb::csv_field(std::cout, std::string(qb::build_description) + "/" + qb::build_options +
+                  "/source=" + qb::source_digest + "/dependencies=" + qb::dependency_digest);
+    std::cout << ',' << (simd(variant) ? qb::simd_backend() : "scalar") << ',' << fixture.digest
+              << ",backend-default,workload-only-raii"
+              << ',' << opts.repeats << ',' << (opts.mode == Mode::Comparisons ? 0 : 1) << ',';
+    if (counters && counters->comparisons_exact) std::cout << counters->push_comparisons;
+    std::cout << ',';
+    if (counters && counters->comparisons_exact) std::cout << counters->pop_comparisons;
+    if (opts.diagnostics) {
+        for (const auto count : {&qb::ExperimentalCounters::partitions,
+                                 &qb::ExperimentalCounters::elements_partitioned,
+                                 &qb::ExperimentalCounters::rebalances,
+                                 &qb::ExperimentalCounters::multi_partitions,
+                                 &qb::ExperimentalCounters::blocks_partitioned}) {
+            std::cout << ',';
+            if (counters) std::cout << (*counters).*count;
+        }
+        std::cout << ',';
+        if (measured.hardware) std::cout << measured.hardware->branch_misses;
+        std::cout << ',';
+        if (measured.hardware) std::cout << measured.hardware->cache_misses;
+        std::cout << ',';
+        if (measured.hardware) std::cout << measured.hardware->cache_references;
     }
-    const auto counts = [&] {
-        auto counted = qb::prepare(plan, Heap<T, true>(variant.config));
-        counted.queue.reset_counters();
-        counted.execute(plan);
-        const auto counts = counted.queue.counters();
-        qb::verify(plan, counted);
-        return counts;
-    }();
+    std::cout << '\n';
+    std::cout.flush();
+    if (!std::cout) throw std::runtime_error("failed to write experiment CSV");
+}
+
+template <typename T, typename Factory>
+Measurement fixture_measure(const qb::Fixture<T>& fixture, Factory&& factory, bool perf) {
+    if (!perf) {
+        const auto duration = qb::direct_trial(fixture, factory, [] {
+            return std::chrono::steady_clock::now();
+        });
+        return {std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count(), std::nullopt};
+    }
+    qb::PerfCounters counters(true);
+    std::optional<qb::HardwareCounts> hardware;
+    bool started = false;
+    const auto duration = qb::direct_trial(fixture, factory, [&] {
+        if (!started) {
+            counters.start();
+            started = true;
+            return std::chrono::steady_clock::now();
+        }
+        const auto stop = std::chrono::steady_clock::now();
+        hardware = counters.stop();
+        return stop;
+    });
+    return {std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count(), hardware};
+}
+
+template <typename T, typename Factory, typename CountFactory>
+void fixture_trial(const qb::Fixture<T>& fixture, const Variant& variant, const Options& opts,
+                   Factory&& factory, CountFactory&& count_factory) {
+    qb::validate_fixture(fixture, factory);
+    if (opts.mode != Mode::Comparisons) fixture_measure(fixture, factory, false);
+    std::optional<qb::ExperimentalCounters> counts;
+    if (opts.diagnostics || opts.mode == Mode::Comparisons) {
+        auto counted = count_factory();
+        if constexpr (requires { counted.reset_counters(); counted.counters(); }) {
+            qb::setup_workload(fixture, counted);
+            counted.reset_counters();
+            qb::dispatch_workload(fixture.workload, [&]<qb::Workload W>() {
+                qb::execute_workload<W>(fixture, counted);
+            });
+            counts = counted.counters();
+        }
+    }
     for (int repeat = 0; repeat < opts.repeats; ++repeat) {
-        auto run = qb::prepare(plan, Heap<T, false>(variant.config));
-        row(variant, n, workload, plan, repeat, measure(plan, run, opts.perf), counts);
+        const auto measured = opts.mode == Mode::Comparisons
+            ? Measurement{0, std::nullopt}
+            : fixture_measure(fixture, factory, opts.perf && opts.diagnostics);
+        fixture_row(fixture, variant, opts, repeat, measured, counts);
     }
 }
 
 template <class T, bool Count> using FlatHeap = qb::ExperimentalHeap<T, Count>;
 template <class T, bool Count> using BlockHeap = qb::BlockQuickHeap<T, Count>;
 
+template <typename T, template <class, bool> class Heap>
+void experimental_fixture(const qb::Fixture<T>& fixture, const Variant& variant,
+                          const Options& opts) {
+    fixture_trial(fixture, variant, opts,
+                  [&] { return Heap<T, false>(variant.config); },
+                  [&] { return Heap<T, true>(variant.config); });
+}
+
 template <typename T>
-void experiment(const qb::Plan<T>& plan, const Variant& variant, std::size_t n,
-                std::string_view workload, const Options& opts) {
-    if (variant.baseline == Baseline::QuickHeap)
-        baseline<qb::KeyQuickHeap<T>>(plan, variant, n, workload, opts);
-    else if (variant.baseline == Baseline::StdPriorityQueue)
-        baseline<qb::StdKeyHeap<T>>(plan, variant, n, workload, opts);
-    else if (variant.blocked)
-        experimental_trial<T, BlockHeap>(plan, variant, n, workload, opts);
-    else
-        experimental_trial<T, FlatHeap>(plan, variant, n, workload, opts);
+void experiment(const qb::Fixture<T>& fixture, const Variant& variant, const Options& opts) {
+    if (variant.baseline == Baseline::QuickHeap) {
+        const auto factory = [] { return qb::KeyQuickHeap<T>{}; };
+        fixture_trial(fixture, variant, opts, factory, factory);
+    } else if (variant.baseline == Baseline::StdPriorityQueue) {
+        const auto factory = [] { return qb::StdKeyHeap<T>{}; };
+        fixture_trial(fixture, variant, opts, factory, factory);
+    } else if (variant.blocked) {
+        experimental_fixture<T, BlockHeap>(fixture, variant, opts);
+    } else {
+        experimental_fixture<T, FlatHeap>(fixture, variant, opts);
+    }
 }
 
 template <typename T>
@@ -346,7 +431,7 @@ void rebalancing(std::size_t n, const std::vector<Variant>& configs, const Optio
             }();
             for (int repeat = 0; repeat < opts.repeats; ++repeat) {
                 auto run = make_run.template operator()<false>();
-                row(variant, n, layout, plan, repeat, measure(plan, run, opts.perf), counts);
+                legacy_row(variant, n, layout, plan, repeat, measure(plan, run, opts.perf), counts);
             }
         }
     }
@@ -440,8 +525,8 @@ void run(const Options& opts, const std::vector<Variant>& configs) {
         else {
             for (const auto& workload : qb::workloads) {
                 if (!opts.workload.empty() && opts.workload != workload.name) continue;
-                const auto plan = qb::make_plan<T>(workload.workload, n);
-                for (const auto& config : configs) experiment(plan, config, n, workload.name, opts);
+                const auto fixture = qb::generate_fixture<T>(workload.workload, n);
+                for (const auto& config : configs) experiment(fixture, config, opts);
             }
         }
     }
@@ -452,6 +537,7 @@ void run(const Options& opts, const std::vector<Variant>& configs) {
 int main(int argc, char** argv) {
     try {
         const auto opts = options(argc, argv);
+        qb::select_backend(opts.backend);
         auto configs = variants(opts.mode);
         if (opts.list) {
             for (const auto& variant : configs) std::cout << variant.name << '\n';
@@ -473,8 +559,26 @@ int main(int argc, char** argv) {
         }
         if (opts.mode == Mode::Partition) {
             std::cout << "elem,variant,backend,n,workload,repeat,nanos,upper,lower,branch_misses,hw_cache_misses,hw_cache_references\n";
-        } else {
+        } else if (opts.mode == Mode::Rebalancing) {
             std::cout << qb::timing_csv_header << ",partitions,elements_partitioned,rebalances,backend,multi_partitions,blocks_partitioned\n";
+        } else {
+            std::cout << paired_csv_header;
+            if (opts.diagnostics) std::cout << diagnostic_csv_header;
+            std::cout << '\n';
+        }
+        if (!opts.fixture.empty()) {
+            auto raw = qb::load_raw_fixture(opts.fixture);
+            if (!opts.workload.empty() && opts.workload != qb::fixture_workload_name(raw.workload))
+                throw std::invalid_argument("--workload disagrees with fixture");
+            const auto consume = [&]<typename T>() {
+                const auto fixture = qb::typed_fixture<T>(std::move(raw));
+                for (const auto& config : configs) experiment(fixture, config, opts);
+            };
+            if (raw.elem == "i32") consume.template operator()<std::int32_t>();
+            else if (raw.elem == "i64") consume.template operator()<std::int64_t>();
+            else if (raw.elem == "u32") consume.template operator()<std::uint32_t>();
+            else consume.template operator()<std::uint64_t>();
+            return 0;
         }
         if (opts.types[0]) run<std::int32_t>(opts, configs);
         if (opts.types[1]) run<std::int64_t>(opts, configs);

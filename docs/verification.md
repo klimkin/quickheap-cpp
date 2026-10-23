@@ -68,3 +68,26 @@ ccache, and sanitizers. CMake target construction follows EBI source/test
 subdirectories. Conan CMakeDeps owns dependency propagation for both static
 and shared packages. See [refit decision trail](../.audit/refit.tsv) and
 [independent closure review](../.audit/refit-review.md).
+
+## C++ benchmark contract
+
+`quickheap-cpp-v1` uses shared raw fixtures and direct workload loops.
+Independent reviews accepted fixture, timing, scalar, coverage, and reporting
+gates in order. Both languages match 21 input fixtures, 126 scalar bucket/count
+traces, production AVX2 full traces, and four graph result/count fixtures.
+Queue construction, setup, validation, and destruction stay outside timing.
+Timed monotone pushes depend on tested queue pops. Output recording stays
+outside timing.
+
+Benchmark-owned matrix exercises GCC15/Clang21 native/scalar, ASan/UBSan/TSan,
+optional Boost/external queues, installed CLIs, fixtures, and reports.
+All14 axes passed at attributed source snapshots. Final GCC/Clang native/scalar
+package runs include active experiment direct-loop migration. Earlier sanitizer
+snapshots precede help and report-label edits. No performance winner claimed.
+
+Reports regenerate attributed CSV, LaTeX, Markdown, SVG/PDF, and manifests.
+Six historical upstream files archive with verified hashes and unknown original
+measurement-build provenance. [Coverage catalog](../benchmark/COVERAGE.md)
+records exact source adapters, substitutes, and historical omissions.
+AVX512 execution remains unavailable on host. Native Windows and Arm execution
+remain unverified.

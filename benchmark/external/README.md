@@ -47,3 +47,11 @@ Configuration also guards SequenceHeap merge-level exhaustion. Upstream can
 recurse past its four allocated trees; the patch throws before either the
 current or next tree index exceeds the array. Vendor assertions remain enabled
 in assertion builds.
+
+Radix heap uses `iwiwi/radix-heap` revision
+`f54eba0a19782c67a9779c28263a7ce680995eda`. Archive SHA-256 is
+`8bec18ad6a0c0f256c8954c8055727fd98931f770acf8ef7e3ab5817d016a511`.
+`external_radix_heap` owns upstream C++ queue directly. It supports four
+integer types and monotone insertion, including duplicate extrema. Capacity
+and exact comparisons remain unavailable. Native `radix_heap` keeps distinct
+substitute identity.

@@ -41,6 +41,11 @@ quickheap_fetch_external(original_quickheap
     a9f2518d9ed452130361cfe1681c68625a68ab35
     2a12c2e2c20cfdfdb4d501935c816f951b29416eb45a516f1546f96de3701da0)
 
+quickheap_fetch_external(radix_heap
+    https://github.com/iwiwi/radix-heap
+    f54eba0a19782c67a9779c28263a7ce680995eda
+    8bec18ad6a0c0f256c8954c8055727fd98931f770acf8ef7e3ab5817d016a511)
+
 set(QUICKHEAP_SEQUENCE_SOURCE_DIR "${sequence_heap_SOURCE_DIR}")
 include(patch_sequence_heap.cmake)
 
@@ -50,6 +55,7 @@ set_target_properties(quickheap_bench_external PROPERTIES
 target_compile_features(quickheap_bench_external PUBLIC cxx_std_17)
 target_compile_definitions(quickheap_bench_external PUBLIC QUICKHEAP_BENCH_EXTERNAL=1)
 target_include_directories(quickheap_bench_external PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..")
+target_include_directories(quickheap_bench_external SYSTEM PUBLIC "${radix_heap_SOURCE_DIR}")
 target_include_directories(quickheap_bench_external SYSTEM PRIVATE
     "${sequence_heap_SOURCE_DIR}"
     "${s3q_SOURCE_DIR}/include"

@@ -1,0 +1,93 @@
+{
+  "assets": [
+    {
+      "build_provenance": "unknown",
+      "bytes": 430052,
+      "paired_protocol": false,
+      "path": "quickheap-dev/bench/evals/data/ablation.csv",
+      "sha256": "12ec9a1bbbf3cb5486a4ef85224b51e75d548db6c500b096bb0680331a7af3bd",
+      "source_matches_revision": true
+    },
+    {
+      "build_provenance": "unknown",
+      "bytes": 8234,
+      "paired_protocol": false,
+      "path": "quickheap-dev/bench/evals/data/comparisons.csv",
+      "sha256": "9c8c8b15c654e8f3d3b884a494d8f1de850c2853cb29ad7d8e1d3b38eb1cbd55",
+      "source_matches_revision": true
+    },
+    {
+      "build_provenance": "unknown",
+      "bytes": 61933,
+      "paired_protocol": false,
+      "path": "quickheap-dev/bench/evals/data/graphs.csv",
+      "sha256": "e0c576ca0a0c219636ca68f151d09f221b4a921541d35fdb1fa97b7a0fffeac4",
+      "source_matches_revision": true
+    },
+    {
+      "build_provenance": "unknown",
+      "bytes": 1598,
+      "paired_protocol": false,
+      "path": "quickheap-dev/bench/evals/data/memory.txt",
+      "sha256": "9c25be2af977ce8e31a10e879a5d83cf173c749d315806b4cabc18850c73a72c",
+      "source_matches_revision": true
+    },
+    {
+      "build_provenance": "unknown",
+      "bytes": 554490,
+      "paired_protocol": false,
+      "path": "quickheap-dev/bench/evals/data/plot.csv",
+      "sha256": "727ae4563f2e5b204fd6a82f9939f8bde8851b99be1e7b9c01cea0b44cfb8a4a",
+      "source_matches_revision": true
+    },
+    {
+      "build_provenance": "unknown",
+      "bytes": 42845,
+      "paired_protocol": false,
+      "path": "quickheap-dev/bench/evals/data/table.csv",
+      "sha256": "8f82c0e362f17609ee34206e8d456ad830018e0dcdeb604039d070d019e6b3d3",
+      "source_matches_revision": true
+    }
+  ],
+  "omissions": [
+    {
+      "detail": "Historical activation and exact algorithm parity remain incomplete.",
+      "item": "Dormant competitor registrations",
+      "status": "tracked gap"
+    },
+    {
+      "detail": "Exact historical flat, blocked, sampling, and terminal configurations remain incomplete.",
+      "item": "Development SIMD parameter variants",
+      "status": "declared substitutes"
+    },
+    {
+      "detail": "C++ RAII storage ownership differs from historical Rust diagnostics.",
+      "item": "Spill/copy and block-arena counters",
+      "status": "tracked gap"
+    },
+    {
+      "detail": "Current memory statistics do not reproduce every historical layer statistic.",
+      "item": "Historical memory and layer statistics",
+      "status": "tracked gap"
+    },
+    {
+      "detail": "C++ Prim uses minimum-weight undirected conversion.",
+      "item": "Historical directed Prim",
+      "status": "distinct semantics"
+    },
+    {
+      "detail": "New attributed reports do not reproduce every historical paper asset.",
+      "item": "Historical paper layout and figure families",
+      "status": "tracked gap"
+    },
+    {
+      "detail": "Archived files cannot enter paired reports without original compiler, flags, CPU, lifecycle, and fixture identity.",
+      "item": "Original measurement build provenance",
+      "status": "unknown"
+    }
+  ],
+  "provenance": "Source revision identifies archived file bytes. Compiler, flags, CPU, timer, and input fixture provenance remain unknown.",
+  "schema": "quickheap-historical-inventory-v1",
+  "source_repository": "quickheap-rs",
+  "source_revision": "a9f2518d9ed452130361cfe1681c68625a68ab35"
+}

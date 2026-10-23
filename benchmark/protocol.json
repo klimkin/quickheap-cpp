@@ -1,0 +1,187 @@
+{
+  "protocol": "quickheap-cpp-v1",
+  "owner": "C++ benchmark",
+  "revisions": {
+    "cpp_baseline": "299fb0b5722fbcd40bed3f7584b8af71ae241c15",
+    "rust_baseline": "a9f2518d9ed452130361cfe1681c68625a68ab35"
+  },
+  "result_identity": "Protocol differs from historical Rust results; compare only attributed shared-fixture runs.",
+  "active_workloads": [
+    "HeapSort",
+    "MonotoneConstantSize",
+    "MonotoneWiggle",
+    "RandomWiggle"
+  ],
+  "dormant_workloads": [
+    "RandomConstantSize",
+    "GeometricMonotoneWiggle",
+    "WorstCaseDescending",
+    "MostlyPushDecreasing"
+  ],
+  "upstream_active_registrations": {
+    "source": "quickheap-dev/bench/examples/bench.rs::bench_plots",
+    "implementations": [
+      "SimdQuickHeap<Avx2>",
+      "SimdQuickHeap<Avx512>",
+      "ScalarQuickHeap<3,false,LinearScan>",
+      "DevSimdQuickHeap<Avx2>",
+      "DevSimdQuickHeap<Avx512>",
+      "SequenceHeap",
+      "S3qHeap",
+      "OriginalQuickHeap",
+      "RadixHeapFFI",
+      "BinaryHeap",
+      "OrxDaryHeap<8>",
+      "WeakHeap"
+    ],
+    "features": {
+      "avx2": "conditional",
+      "avx512": "conditional",
+      "ffi": "conditional"
+    },
+    "restrictions": [
+      "FFI registrations use i32 and i64",
+      "Monotone queues omit RandomWiggle"
+    ]
+  },
+  "defaults": {
+    "min_exponent": 10,
+    "max_exponent": 25,
+    "exponent_step": 1,
+    "sizes": "n = 2^exponent, endpoints inclusive",
+    "repeats": 3,
+    "warmup": 1,
+    "warmup_policy": "Fresh queue and same fixture for every unreported trial",
+    "elem": [
+      "i32",
+      "i64"
+    ],
+    "cutoff": {
+      "enabled": false,
+      "policy": "Run all explicitly requested sizes"
+    }
+  },
+  "reservation": {
+    "policy": "backend-default grow",
+    "required_capacity_exceptions": [
+      "original_quickheap"
+    ],
+    "exception_policy": "Provide maximum live queue size before timing and disclose required-capacity backend policy in results"
+  },
+  "timer": {
+    "clock": "steady_clock",
+    "before": [
+      "Read or generate fixture",
+      "Full independent correctness validation",
+      "Construct queue",
+      "Apply required capacity",
+      "Run workload setup"
+    ],
+    "inside": [
+      "Workload-specific push and pop loops",
+      "Derive monotone push from preceding tested-queue pop"
+    ],
+    "after": [
+      "Queue RAII destruction",
+      "Report formatting"
+    ],
+    "output_writes": "No timed output-buffer writes"
+  },
+  "fixture": {
+    "magic": "QHB1",
+    "encoding": "ASCII whitespace-separated unsigned decimal integers",
+    "layout": "QHB1 <elem> <workload> <n>\\nsetup <count>\\n<values>\\ntimed <count>\\n<values>\\n",
+    "digest": "fnv1a64:<16 lowercase hexadecimal digits>, exact file bytes",
+    "types": [
+      "i32",
+      "i64",
+      "u32",
+      "u64"
+    ],
+    "keys": "Unsigned bit patterns at declared element width; signed decoding uses two's complement",
+    "offsets": "Unsigned u64 values independent of element width; arithmetic overflow validation runs before timing",
+    "n": {
+      "minimum": 1,
+      "maximum": 33554432
+    },
+    "lengths": {
+      "HeapSort": {
+        "setup": "0",
+        "timed": "n",
+        "values": "keys"
+      },
+      "MonotoneConstantSize": {
+        "setup": "2*(n+50)",
+        "timed": "10*n",
+        "values": "offsets"
+      },
+      "RandomConstantSize": {
+        "setup": "2*(n+50)",
+        "timed": "10*n",
+        "values": "keys"
+      },
+      "MonotoneWiggle": {
+        "setup": "0",
+        "timed": "3*n",
+        "values": "offsets"
+      },
+      "RandomWiggle": {
+        "setup": "0",
+        "timed": "3*n",
+        "values": "keys"
+      },
+      "GeometricMonotoneWiggle": {
+        "setup": "0",
+        "timed": "3*n",
+        "values": "offsets"
+      },
+      "WorstCaseDescending": {
+        "setup": "0",
+        "timed": "9*n",
+        "values": "keys"
+      },
+      "MostlyPushDecreasing": {
+        "setup": "0",
+        "timed": "10*n",
+        "values": "keys"
+      }
+    },
+    "generator": {
+      "algorithm": "SplitMix64 with unbiased modulo rejection for bounded integers",
+      "seed": "0x51484c42 XOR (workload ordinal << 56) XOR (sizeof(elem) << 48) XOR n",
+      "workload_ordinals": [
+        "HeapSort",
+        "MonotoneConstantSize",
+        "RandomConstantSize",
+        "MonotoneWiggle",
+        "RandomWiggle",
+        "GeometricMonotoneWiggle",
+        "WorstCaseDescending",
+        "MostlyPushDecreasing"
+      ],
+      "portability": "Active integer workloads regenerate identically across C++ standard libraries; shared files define identity for dormant geometric sampling"
+    }
+  },
+  "required_result_provenance": [
+    "protocol",
+    "build",
+    "backend",
+    "fixture_digest",
+    "reservation",
+    "timer",
+    "repeats",
+    "warmup"
+  ],
+  "build_identity": {
+    "cpp": "Compiler/version, build type and flags, options, source sha256, resolved Quickheap/Highway package content sha256",
+    "rust": "Resolved rustc version, target, optimization, features, flags, source fnv1a64 including Cargo.lock",
+    "baseline_pins": "revisions identifies audited historical sources, not modified build contents"
+  },
+  "graph": {
+    "protocol": "quickheap-cpp-graph-v1",
+    "dijkstra": "directed arcs; u32 checked distance; source zero",
+    "prim": "minimum undirected edges; source component",
+    "queue_order": "packed key then ID",
+    "historical": "Rust directed Prim is distinct"
+  }
+}

@@ -13,16 +13,30 @@ class QuickHeapBenchmarkConan(ConanFile):
     description = "Quickheap workloads, competitors, and configuration experiments"
     package_type = "application"
     settings = "os", "arch", "compiler", "build_type"
-    options = {"boost": [True, False], "external": [True, False]}
-    default_options = {"boost": False, "external": False}
+    options = {"boost": [True, False], "external": [True, False], "fixed_targets": [True, False]}
+    default_options = {"boost": False, "external": False, "fixed_targets": False}
     exports_sources = (
+        "conanfile.py",
         "CMakeLists.txt",
         "*.cpp",
         "*.hpp",
+        "*.hpp.in",
+        "protocol.json",
+        "catalog.csv",
+        "fixtures/*.qhf",
         "README.md",
+        "PROTOCOL.md",
+        "COVERAGE.md",
+        "verification.md",
+        "verify.py",
+        "verify_pair.py",
+        "verify_scalar.py",
+        "verify_graph.py",
         "run-all.sh",
         "data/*.gr",
         "evals/*.py",
+        "evals/historical.json",
+        "evals/README.md",
         "external/*",
     )
 
@@ -54,8 +68,12 @@ class QuickHeapBenchmarkConan(ConanFile):
         toolchain.cache_variables["QUICKHEAP_SCALAR"] = bool(
             self.dependencies["quickheap"].options.scalar
         )
+        toolchain.cache_variables["QUICKHEAP_BENCH_LIBRARY_SCALAR"] = bool(
+            self.dependencies["quickheap"].options.scalar
+        )
         toolchain.cache_variables["QUICKHEAP_BENCH_BOOST"] = bool(self.options.boost)
         toolchain.cache_variables["QUICKHEAP_BENCH_EXTERNAL"] = bool(self.options.external)
+        toolchain.cache_variables["QUICKHEAP_BENCH_FIXED_TARGETS"] = bool(self.options.fixed_targets)
         toolchain.cache_variables["CMAKE_INSTALL_PREFIX"] = os.path.join(
             self.build_folder, "package"
         )

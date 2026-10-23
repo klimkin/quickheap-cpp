@@ -1,0 +1,8 @@
+#pragma once
+
+namespace quickheap::bench {
+inline constexpr const char *build_description = R"qh(@QUICKHEAP_BENCH_BUILD@)qh";
+inline constexpr const char *source_digest = "sha256:@QUICKHEAP_BENCH_SOURCE_DIGEST@";
+inline constexpr const char *dependency_digest = "sha256:@QUICKHEAP_BENCH_DEPENDENCY_DIGEST@";
+inline constexpr const char *build_options = "cxx20;scalar=@QUICKHEAP_SCALAR@;boost=@QUICKHEAP_BENCH_BOOST@;external=@QUICKHEAP_BENCH_EXTERNAL@;warnings=-Wall -Wextra -Werror";
+}

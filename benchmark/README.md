@@ -9,6 +9,26 @@ Native runners write CSV to standard output and diagnostics to standard error.
 `--help` lists each runner's options. `quickheap_bench --list` lists enabled
 heaps, workloads, and element types.
 
+## Run paired fixtures
+
+`quickheap-cpp-v1` uses C++-owned timer boundaries and shared raw inputs.
+Read [protocol](PROTOCOL.md) for lifecycle, workload, and provenance rules.
+[Coverage catalog](COVERAGE.md) distinguishes ports, substitutes, and tracked gaps.
+
+```sh
+quickheap_fixture --generate MonotoneConstantSize --elem i64 --n 1024 --output input.qhf
+quickheap_bench --fixture input.qhf --heap std_priority_queue --repeat 3 > paired.csv
+quickheap_bench --fixture input.qhf --heap std_priority_queue --verify-only
+```
+
+Fixture mode validates all operations with separate queue state before timing.
+Monotone pushes use tested heap pops. Timed loops borrow input and write no
+output buffer. Construction, setup, validation, and destruction stay outside
+timer. Default synthetic timing generates same raw fixtures and uses direct loops.
+Synthetic legacy comparison/ablation entrypoints retain replay until migrated.
+Experiment variants, ablation, and comparisons consume direct fixtures.
+Partition and rebalancing microbenchmarks retain separate historical identity.
+
 ## Run synthetic workloads
 
 Create Quickheap in the local Conan cache, then build this directory as its own
@@ -33,11 +53,11 @@ benchmark/build/Release/quickheap_bench --min 10 --max 16 --ablation > ablation.
 ```
 
 `--min`, `--max`, and `--step` select powers of two. Default sizes span
-`2^10` through `2^20` in exponent steps of two. Default types are `i32` and
+`2^10` through `2^25` in exponent steps of one. Default types are `i32` and
 `i64`. Add `--u32` or `--u64` for unsigned keys. Fixed seeds make input
 generation repeatable. Signed monotone workloads check key overflow.
 
-Timing includes queue replay. Input generation, queue construction, setup,
+Default timing includes direct workload loops. Input generation, queue construction, setup,
 output validation, and destruction run outside timing. Each measured repeat
 uses fresh state after untimed warmup. `--repeat` defaults to three.
 Native runners use one warmup; `quickheap_bench --warmup N` overrides its count.
@@ -156,7 +176,8 @@ zero operation counts, and zero normalization denominators fail.
 
 Default synthetic units are `ns/push-pop pair`. Default graph units are
 `ns/queue call`, dividing by `push_count + pop_count`. `--normalize pushes`
-uses graph push count and labels `ns/push`. `--normalize nlogn` divides by
+uses graph push count and labels `ns/push`. `--normalize opslogn` divides synthetic metrics by `ops * log2(n)` and
+applies workload factor once. `--normalize nlogn` divides by
 `n * log2(n)` and labels `ns/(n log2 n)`. `--normalize none` retains raw
 values. `--metric comparisons` sums push and pop comparisons. Other metric
 names select numeric CSV columns, including hardware counters.
@@ -268,3 +289,16 @@ and blocked processing beyond one112-element block.
 fixtures under `share/quickheap-bench`. Its `test_package` runs the installed
 CLIs and graph analysis against packaged fixtures. Benchmark CMake resolves
 `quickheap::quickheap` from Conan; it never reads library source directories.
+
+Independent SIMD executables build with `-DQUICKHEAP_BENCH_FIXED_TARGETS=ON`
+or Conan `-o '&:fixed_targets=True'`. `--backend avx2` selects AVX2 in
+generic runner. Unsupported CPU targets fail before queue execution.
+
+`--diagnostics --fixture FILE` collects queue capacity, slot bytes, peak
+occupancy, partitions, retries, samples, and available layer shape outside
+timing. Unavailable measurements remain blank.
+
+`evals/report.py CSV --output DIR --fixtures FIXTURE_DIR --plot` writes
+attributed CSV, LaTeX, paper Markdown, plots, and manifest.
+[Reporting reference](evals/README.md) defines grouping and historical archive
+validation. Historical files retain unknown measurement-build provenance.

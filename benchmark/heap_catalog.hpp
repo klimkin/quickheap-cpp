@@ -3,9 +3,11 @@
 
 #include "competitor_heaps.hpp"
 #include "experimental_heap.hpp"
+#include "scalar_heap.hpp"
 #include "workloads.hpp"
 #ifdef QUICKHEAP_BENCH_EXTERNAL
 #include "external_heaps.hpp"
+#include "radix_external.hpp"
 #endif
 
 namespace quickheap::bench {
@@ -13,11 +15,13 @@ namespace quickheap::bench {
 enum class QueueKind {
     QuickHeap, StdPriorityQueue, KvQuickHeap, KvStdPriorityQueue,
     CustomBinary, Dary4, Dary8, Dary16, CustomDary4, CustomDary8, Weak, Radix, Scalar, Blocked,
+    ScalarM1Linear, ScalarM3Linear, ScalarPerfectLinear,
+    ScalarM1Binary, ScalarM3Binary, ScalarPerfectBinary,
 #ifdef QUICKHEAP_BENCH_BOOST
     BoostDary4, BoostFibonacci, BoostPairing, BoostBinomial, BoostSkew,
 #endif
 #ifdef QUICKHEAP_BENCH_EXTERNAL
-    Sequence, S3Q, Original,
+    Sequence, S3Q, Original, ExternalRadix,
 #endif
 };
 
@@ -44,6 +48,12 @@ inline constexpr std::array queue_catalog = {
     QueueInfo{QueueKind::Radix, "radix_heap", true, false, true},
     QueueInfo{QueueKind::Scalar, "scalar_quickheap", true, true, false},
     QueueInfo{QueueKind::Blocked, "blocked_quickheap", true, true, false},
+    QueueInfo{QueueKind::ScalarM1Linear, "scalar_median1_linear", true, true, false},
+    QueueInfo{QueueKind::ScalarM3Linear, "scalar_median3_linear", true, true, false},
+    QueueInfo{QueueKind::ScalarPerfectLinear, "scalar_perfect_linear", true, true, false},
+    QueueInfo{QueueKind::ScalarM1Binary, "scalar_median1_binary", true, true, false},
+    QueueInfo{QueueKind::ScalarM3Binary, "scalar_median3_binary", true, true, false},
+    QueueInfo{QueueKind::ScalarPerfectBinary, "scalar_perfect_binary", true, true, false},
 #ifdef QUICKHEAP_BENCH_BOOST
     QueueInfo{QueueKind::BoostDary4, "boost_dary4", false, true, false},
     QueueInfo{QueueKind::BoostFibonacci, "boost_fibonacci", false, true, false},
@@ -55,6 +65,7 @@ inline constexpr std::array queue_catalog = {
     QueueInfo{QueueKind::Sequence, "sequence_heap", false, false, false},
     QueueInfo{QueueKind::S3Q, "s3q", false, false, false},
     QueueInfo{QueueKind::Original, "original_quickheap", false, false, false},
+    QueueInfo{QueueKind::ExternalRadix, "external_radix_heap", false, false, true},
 #endif
 };
 
@@ -80,6 +91,12 @@ void visit_queue(QueueKind kind, Visitor &&visit) {
     case QueueKind::Radix: visit.template operator()<RadixHeap<T>>(); break;
     case QueueKind::Scalar: visit.template operator()<ExperimentalHeap<T, Count>>(); break;
     case QueueKind::Blocked: visit.template operator()<BlockQuickHeap<T, Count>>(); break;
+    case QueueKind::ScalarM1Linear: visit.template operator()<ScalarHeap<T, 1, false, true, Count>>(); break;
+    case QueueKind::ScalarM3Linear: visit.template operator()<ScalarHeap<T, 3, false, true, Count>>(); break;
+    case QueueKind::ScalarPerfectLinear: visit.template operator()<ScalarHeap<T, 1, true, true, Count>>(); break;
+    case QueueKind::ScalarM1Binary: visit.template operator()<ScalarHeap<T, 1, false, false, Count>>(); break;
+    case QueueKind::ScalarM3Binary: visit.template operator()<ScalarHeap<T, 3, false, false, Count>>(); break;
+    case QueueKind::ScalarPerfectBinary: visit.template operator()<ScalarHeap<T, 1, true, false, Count>>(); break;
 #ifdef QUICKHEAP_BENCH_BOOST
     case QueueKind::BoostDary4: visit.template operator()<BoostDaryHeap<T, 4, Count>>(); break;
     case QueueKind::BoostFibonacci: visit.template operator()<BoostFibonacciHeap<T, Count>>(); break;
@@ -91,6 +108,7 @@ void visit_queue(QueueKind kind, Visitor &&visit) {
     case QueueKind::Sequence: visit.template operator()<SequenceHeap<T>>(); break;
     case QueueKind::S3Q: visit.template operator()<S3QHeap<T>>(); break;
     case QueueKind::Original: visit.template operator()<OriginalQuickHeap<T>>(); break;
+    case QueueKind::ExternalRadix: visit.template operator()<ExternalRadixHeap<T>>(); break;
 #endif
     }
 }
