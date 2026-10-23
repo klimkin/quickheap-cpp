@@ -320,11 +320,15 @@ template <typename T> class StdKeyHeap {
     StdKeyHeap() = default;
     explicit StdKeyHeap(std::size_t capacity) : heap_(std::greater<T>{}, reserved(capacity)) {}
     void push(T key) { heap_.push(key); }
-    std::optional<T> try_pop() {
-        if (heap_.empty()) return std::nullopt;
+    T pop() {
+        if (heap_.empty()) throw std::runtime_error("workload popped an empty heap");
         T key = heap_.top();
         heap_.pop();
         return key;
+    }
+    std::optional<T> try_pop() {
+        if (heap_.empty()) return std::nullopt;
+        return pop();
     }
     std::size_t size() const { return heap_.size(); }
 

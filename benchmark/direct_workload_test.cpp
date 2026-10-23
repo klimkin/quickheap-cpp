@@ -4,10 +4,40 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <bit>
+#include <set>
 #include <sstream>
 
 namespace {
 using namespace quickheap::bench;
+
+TEMPLATE_TEST_CASE("Standard heap supports mixed extraction and empty reuse", "[direct][correctness]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    using T = TestType;
+    StdKeyHeap<T> queue(16);
+    const auto low = std::numeric_limits<T>::lowest();
+    const auto high = std::numeric_limits<T>::max();
+    const std::array<T, 7> keys{high, low, T{0}, T{1}, high, low, T{0}};
+    std::multiset<T> expected(keys.begin(), keys.end());
+    for (const auto key : keys) queue.push(key);
+    std::size_t extracted = 0;
+    while (!expected.empty()) {
+        const auto key = *expected.begin();
+        if (extracted++ % 2 == 0) {
+            CHECK(pop_item(queue) == key);
+        } else {
+            CHECK(queue.try_pop() == key);
+        }
+        expected.erase(expected.begin());
+        CHECK(queue.size() == expected.size());
+    }
+    CHECK_FALSE(queue.try_pop());
+    CHECK_THROWS_AS(queue.pop(), std::runtime_error);
+    CHECK_THROWS_AS(pop_item(queue), std::runtime_error);
+    CHECK(queue.size() == 0);
+    queue.push(high);
+    CHECK(queue.pop() == high);
+    CHECK_FALSE(queue.try_pop());
+}
 
 TEMPLATE_TEST_CASE("Checked offsets preserve the complete integer domain", "[direct][arithmetic]",
                    std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
