@@ -3,10 +3,48 @@
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <bit>
 #include <sstream>
 
 namespace {
 using namespace quickheap::bench;
+
+TEMPLATE_TEST_CASE("Checked offsets preserve the complete integer domain", "[direct][arithmetic]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    using T = TestType;
+    const auto low = std::numeric_limits<T>::lowest();
+    const auto high = std::numeric_limits<T>::max();
+    const std::array<T, 5> bases{low, static_cast<T>(low + 1), T{0}, static_cast<T>(high - 1), high};
+    const std::array<std::uint64_t, 7> offsets{0, 1, 2, UINT32_MAX, UINT64_C(1) << 63,
+                                              (UINT64_C(1) << 63) + 1, UINT64_MAX};
+    const auto check = [&](T base, std::uint64_t offset) {
+        CAPTURE(base, offset);
+#if defined(__SIZEOF_INT128__)
+        const __int128 exact = static_cast<__int128>(base) + static_cast<__int128>(offset);
+        if (exact > static_cast<__int128>(high)) {
+            CHECK_THROWS_AS(offset_key<true>(base, offset), std::runtime_error);
+        } else {
+            CHECK(static_cast<__int128>(offset_key<true>(base, offset)) == exact);
+        }
+#else
+        const auto expected = add_positive(base, offset);
+        if (expected) CHECK(offset_key<true>(base, offset) == *expected);
+        else CHECK_THROWS_AS(offset_key<true>(base, offset), std::runtime_error);
+#endif
+    };
+    for (T base : bases) for (auto offset : offsets) check(base, offset);
+    if constexpr (std::is_signed_v<T>) {
+        check(T{-1}, 1);
+        check(T{-1}, UINT64_C(1) << (sizeof(T) * 8 - 1));
+        check(T{-1}, (UINT64_C(1) << (sizeof(T) * 8 - 1)) + 1);
+    }
+    std::mt19937_64 rng(42);
+    for (std::size_t i = 0; i < 1000; ++i) {
+        const T base = std::bit_cast<T>(static_cast<std::make_unsigned_t<T>>(rng()));
+        const auto offset = rng();
+        check(base, offset);
+    }
+}
 
 struct ControlledPopQueue {
     using Item = std::int32_t;

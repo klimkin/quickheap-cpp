@@ -47,9 +47,16 @@ template <typename Q> auto pop_key(Q &queue) {
 
 template <bool Checked, typename T> inline T offset_key(T base, std::uint64_t offset) {
     if constexpr (Checked) {
+#if defined(__GNUC__) || defined(__clang__)
+        T key;
+        if (__builtin_add_overflow(base, offset, &key))
+            throw std::runtime_error("monotone key overflow; reduce --max or select a wider type");
+        return key;
+#else
         const auto key = add_positive(base, offset);
         if (!key) throw std::runtime_error("monotone key overflow; reduce --max or select a wider type");
         return *key;
+#endif
     } else {
         using U = std::make_unsigned_t<T>;
         return key_from_bits<T>(static_cast<U>(static_cast<U>(base) + static_cast<U>(offset)));
