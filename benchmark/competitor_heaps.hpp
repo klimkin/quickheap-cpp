@@ -152,15 +152,28 @@ template <typename T, bool CountComparisons = false> class WeakHeap {
     static constexpr bool comparison_counted = CountComparisons;
 
     void push(T key) {
+        const auto old_size = elements_.size();
         elements_.push_back(std::move(key));
-        reverse_.push_back(false);
-        auto pos = elements_.size() - 1;
-        if (pos != 0 && pos % 2 == 0) reverse_[pos / 2] = false;
-        while (pos != 0) {
-            const auto ancestor = distinguished_ancestor(pos);
-            if (!join(ancestor, pos, stats_.pushes)) break;
-            pos = ancestor;
+        reverse_.push_back(0);
+        if (old_size == 0) return;
+        if (old_size % 2 == 0) reverse_[old_size / 2] = 0;
+        // Hole-based sift-up as in weakheap 0.1.0; a childless leaf needs no bit flip.
+        T value = std::move(elements_[old_size]);
+        auto hole = old_size;
+        auto cur = old_size;
+        while (cur != 0) {
+            auto ancestor = cur / 2;
+            while (ancestor != 0 && cur % 2 == static_cast<std::size_t>(reverse_[ancestor])) {
+                cur /= 2;
+                ancestor /= 2;
+            }
+            if constexpr (CountComparisons) ++stats_.pushes;
+            if (!std::less<T>{}(value, elements_[ancestor])) break;
+            elements_[hole] = std::move(elements_[ancestor]);
+            hole = ancestor;
+            cur = ancestor;
         }
+        elements_[hole] = std::move(value);
     }
 
     std::optional<T> try_pop() {
