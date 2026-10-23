@@ -91,7 +91,7 @@ target_link_libraries(quickheap_bench_graph PRIVATE quickheap_bench_backend)
 
 if(BUILD_TESTING)
     find_package(Catch2 3.16 REQUIRED CONFIG)
-    add_executable(quickheap_bench_tests graph_test.cpp workload_test.cpp experimental_heap_test.cpp competitor_test.cpp fixture_test.cpp direct_workload_test.cpp scalar_heap_test.cpp backend_test.cpp diagnostics_test.cpp)
+    add_executable(quickheap_bench_tests graph_test.cpp workload_test.cpp experimental_heap_test.cpp competitor_test.cpp fixture_test.cpp direct_workload_test.cpp original_profile_test.cpp scalar_heap_test.cpp backend_test.cpp diagnostics_test.cpp)
     target_link_libraries(quickheap_bench_tests PRIVATE quickheap_bench_graph_support Catch2::Catch2WithMain)
     target_link_libraries(quickheap_bench_tests PRIVATE quickheap_bench_backend)
 endif()

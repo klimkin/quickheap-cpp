@@ -316,6 +316,8 @@ template <typename T> class KvQuickHeap {
 template <typename T> class StdKeyHeap {
   public:
     using Item = T;
+    StdKeyHeap() = default;
+    explicit StdKeyHeap(std::size_t capacity) : heap_(std::greater<T>{}, reserved(capacity)) {}
     void push(T key) { heap_.push(key); }
     std::optional<T> try_pop() {
         if (heap_.empty()) return std::nullopt;
@@ -326,6 +328,11 @@ template <typename T> class StdKeyHeap {
     std::size_t size() const { return heap_.size(); }
 
   private:
+    static std::vector<T> reserved(std::size_t capacity) {
+        std::vector<T> keys;
+        keys.reserve(capacity);
+        return keys;
+    }
     std::priority_queue<T, std::vector<T>, std::greater<T>> heap_;
 };
 
