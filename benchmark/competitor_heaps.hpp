@@ -82,11 +82,23 @@ class DaryHeap {
             }
         } else {
             T value = std::move(elements_.front());
-            while (has_child(pos)) {
-                const auto child = smallest_child(pos);
-                if (!less(elements_[child], value, stats_.pops)) break;
-                elements_[pos] = std::move(elements_[child]);
-                pos = child;
+            const auto len = elements_.size();
+            for (;;) {
+                const auto first = pos * Arity + 1;
+                if (first >= len) break;
+                const auto end = first + std::min(Arity, len - first);
+                // Keep the best key in a register so the scan lowers to cmovs.
+                auto best = first;
+                auto best_key = elements_[first];
+                for (auto child = first + 1; child < end; ++child) {
+                    if (less(elements_[child], best_key, stats_.pops)) {
+                        best = child;
+                        best_key = elements_[child];
+                    }
+                }
+                if (!less(best_key, value, stats_.pops)) break;
+                elements_[pos] = std::move(elements_[best]);
+                pos = best;
             }
             elements_[pos] = std::move(value);
         }
