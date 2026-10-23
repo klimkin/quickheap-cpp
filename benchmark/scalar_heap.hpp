@@ -242,19 +242,40 @@ private:
         auto& upper = buckets_[index];
         auto& lower = buckets_[index + 1];
         const auto count = upper.size();
-        lower.clear();
-        lower.reserve(count);
         const auto pivot_index = select_pivot(upper);
         const auto pivot = upper[pivot_index];
-        std::size_t upper_count = 0;
-        for (std::size_t i = 0; i < count; ++i) {
-            const auto key = upper[i];
-            if constexpr (Count) ++counters_.pop_comparisons;
-            const auto goes_lower = i <= pivot_index ? key <= pivot : key < pivot;
-            if (goes_lower) lower.push_back(key);
-            else upper[upper_count++] = key;
+        if constexpr (Perfect) {
+            // Sorted keys make the split branch predictable.
+            lower.clear();
+            lower.reserve(count);
+            std::size_t upper_count = 0;
+            for (std::size_t i = 0; i < count; ++i) {
+                const auto key = upper[i];
+                if constexpr (Count) ++counters_.pop_comparisons;
+                const auto goes_lower = i <= pivot_index ? key <= pivot : key < pivot;
+                if (goes_lower) lower.push_back(key);
+                else upper[upper_count++] = key;
+            }
+            upper.resize(upper_count);
+        } else {
+            // Write each key to both sides and advance one cursor, so the split has no branch.
+            lower.resize(count);
+            T* const lower_data = lower.data();
+            T* const upper_data = upper.data();
+            std::size_t lower_count = 0;
+            std::size_t upper_count = 0;
+            for (std::size_t i = 0; i < count; ++i) {
+                const auto key = upper_data[i];
+                if constexpr (Count) ++counters_.pop_comparisons;
+                const bool goes_lower = i <= pivot_index ? key <= pivot : key < pivot;
+                lower_data[lower_count] = key;
+                upper_data[upper_count] = key;
+                lower_count += goes_lower;
+                upper_count += !goes_lower;
+            }
+            lower.resize(lower_count);
+            upper.resize(upper_count);
         }
-        upper.resize(upper_count);
         const auto retry = upper.empty();
         if constexpr (Count) {
             ++counters_.partitions;
