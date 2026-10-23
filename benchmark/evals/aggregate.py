@@ -116,7 +116,7 @@ def aggregate(reports, output):
                                                 statistics.median(values), min(values), max(values)))
     provenance = []
     (output / "provenance").mkdir(exist_ok=True)
-    for name in ("historical.json", "catalog.csv", "protocol.json", "report.py", "plot.py"):
+    for name in ("historical.json", "catalog.csv", "protocol.json", "cpu.py", "report.py", "plot.py"):
         raw = (reports[0] / "provenance" / name).read_bytes()
         (output / "provenance" / name).write_bytes(raw)
         provenance.append({"path": f"provenance/{name}", "sha256": digest(raw)})

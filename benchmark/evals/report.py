@@ -374,6 +374,7 @@ def generate(args):
         manifest["builds"].append({"language": language, "build": build, "build_id": sha256(build.encode())[:16]})
     for name, raw in (("protocol.json", protocol_raw), ("historical.json", historical_raw),
                       ("catalog.csv", (base.parent / "catalog.csv").read_bytes()),
+                      ("cpu.py", (base.parent / "cpu.py").read_bytes()),
                       ("report.py", Path(__file__).read_bytes()), ("plot.py", (base / "plot.py").read_bytes())):
         target = f"provenance/{name}"
         (output / target).write_bytes(raw)

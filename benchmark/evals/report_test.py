@@ -69,6 +69,8 @@ class ReportContract(unittest.TestCase):
         manifest = json.loads((args.output / "manifest.json").read_text())
         self.assertEqual(manifest["run_metadata"]["value"], record)
         self.assertEqual((args.output / "provenance/cpu.json").read_bytes(), metadata.read_bytes())
+        self.assertEqual((args.output / "provenance/cpu.py").read_bytes(),
+                         (Path(__file__).parent.parent / "cpu.py").read_bytes())
         record["cpu"] = 4
         record["observed_affinity"] = [4]
         metadata.write_text(json.dumps(record))
