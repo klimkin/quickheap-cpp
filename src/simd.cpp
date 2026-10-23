@@ -53,14 +53,15 @@ SplitResult Partition(T* keys, T* values, T* lower_keys, T* lower_values,
     std::size_t upper = 0;
     std::size_t lower = 0;
     std::size_t i = 0;
+    const auto even_start = hn::Eq(hn::And(hn::Iota(d, static_cast<T>(salt & 1)), one), hn::Zero(d));
     for (; count - i >= lanes; i += lanes) {
         const auto key = hn::LoadU(d, keys + i);
         auto value = hn::Zero(d);
         if constexpr (Paired) {
             value = hn::LoadU(d, values + i);
         }
-        const auto even = hn::Eq(hn::And(hn::Iota(d, static_cast<T>((i ^ salt) & 1)), one),
-                                 hn::Zero(d));
+        const auto even = lanes % 2 == 0 ? even_start :
+            hn::Eq(hn::And(hn::Iota(d, static_cast<T>((i ^ salt) & 1)), one), hn::Zero(d));
         const auto small = hn::Or(hn::Lt(key, threshold), hn::And(hn::Eq(key, threshold), even));
         const auto large = hn::Not(small);
         // Both cursors are <= i, so full-register stores stay inside count slots.
