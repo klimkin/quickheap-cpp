@@ -7,13 +7,17 @@ import io
 import re
 from pathlib import Path
 import subprocess
+import os
+
+from cpu import pinned_command, select_cpu
 
 HEAPS = tuple(f'scalar_{pivot}_{search}' for pivot in ('median1', 'median3', 'perfect')
               for search in ('linear', 'binary'))
 
 
 def output(binary, fixture, heap, *flags):
-    return subprocess.run([str(binary), '--fixture', str(fixture), '--heap', heap, *flags],
+    return subprocess.run(pinned_command([str(binary), '--fixture', str(fixture), '--heap', heap, *flags],
+                                        select_cpu(os.environ.get('BENCH_CPU', 'auto'))['cpu']),
                           text=True, capture_output=True, check=True).stdout
 
 

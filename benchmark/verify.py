@@ -18,6 +18,8 @@ import sys
 import tempfile
 import time
 
+from cpu import observe_affinity, pinned_command, select_cpu
+
 if os.name == "nt":
     import msvcrt
 else:
@@ -78,6 +80,8 @@ class Checks:
         self.records = []
 
     def run(self, name, command, *, cwd=None, env=None):
+        if Path(command[0]).name.startswith(("quickheap_bench", "quickheap_experiments")):
+            command = pinned_command(command, select_cpu(os.environ.get("BENCH_CPU", "auto"))["cpu"])
         log = self.directory / f"{name}.log"
         stderr_log = self.directory / f"{name}.stderr.log"
         started = utc_now()
@@ -394,11 +398,18 @@ def main():
         for axis in catalog.values():
             print(f"{axis.name}\t{axis.profile}\t{axis.build_type}\t{axis.scalar}\t{axis.boost}\t{axis.external}")
         return 0
+    try:
+        cpu = observe_affinity(select_cpu(os.environ.get("BENCH_CPU", "auto")))
+        if not shutil.which("taskset"):
+            raise ValueError("taskset unavailable")
+        os.environ["BENCH_CPU"] = str(cpu["cpu"])
+    except (OSError, ValueError) as error:
+        parser.error(str(error))
     root = Path(__file__).resolve().parent.parent
     args.output.mkdir(parents=True, exist_ok=True)
     output = Path(tempfile.mkdtemp(prefix="run-", dir=args.output.resolve()))
     summary = {"schema": "quickheap-benchmark-verification-v1", "started": utc_now(),
-               "platform": platform.platform(), "python": sys.version,
+               "platform": platform.platform(), "python": sys.version, "cpu": cpu,
                "build_profile": args.build_profile, "selected_axes": args.axis or list(catalog), "axes": []}
     try:
         summary["source"] = source_state(root)

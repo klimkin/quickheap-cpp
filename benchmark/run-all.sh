@@ -8,6 +8,7 @@ fi
 
 binary_dir=$1
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+bench_cpu=$(python3 "$script_dir/cpu.py" --select "${BENCH_CPU:-auto}")
 output_dir=${2:-"$script_dir/evals/data"}
 graph_input=${3:-}
 bench="$binary_dir/quickheap_bench"
@@ -18,6 +19,7 @@ if [[ ! -x "$bench" ]]; then
     exit 2
 fi
 mkdir -p "$output_dir"
+python3 "$script_dir/cpu.py" --select "$bench_cpu" --output "$output_dir/cpu.json" >/dev/null
 common=(--min "${MIN:-10}" --max "${MAX:-20}" --step "${STEP:-2}" --repeat "${REPEAT:-3}")
 memory_args=("${common[@]}")
 if [[ -n ${HEAP:-} ]]; then common+=(--heap "$HEAP"); fi
@@ -35,7 +37,7 @@ run_csv() {
     local name=$1
     shift
     printf 'Writing %s\n' "$output_dir/$name.csv" >&2
-    "$@" > "$output_dir/$name.csv.tmp"
+    taskset -c "$bench_cpu" "$@" > "$output_dir/$name.csv.tmp"
     mv "$output_dir/$name.csv.tmp" "$output_dir/$name.csv"
 }
 

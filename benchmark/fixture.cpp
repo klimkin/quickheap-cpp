@@ -9,6 +9,8 @@ struct Options {
     std::string workload;
     std::string elem;
     std::size_t n = 0;
+    std::uint64_t seed = default_fixture_seed;
+    bool seed_selected = false;
     std::filesystem::path output;
     std::filesystem::path inspect;
     bool dump = false;
@@ -30,6 +32,12 @@ Options parse(int argc, char **argv) {
             const auto [end, error] = std::from_chars(token.data(), token.data() + token.size(), options.n);
             if (error != std::errc{} || end != token.data() + token.size())
                 throw std::runtime_error("--n requires an unsigned decimal integer");
+        } else if (flag == "--seed") {
+            const auto token = value();
+            const auto [end, error] = std::from_chars(token.data(), token.data() + token.size(), options.seed);
+            if (error != std::errc{} || end != token.data() + token.size())
+                throw std::runtime_error("--seed requires an unsigned 64-bit decimal integer");
+            options.seed_selected = true;
         } else if (flag == "--output") options.output = value();
         else if (flag == "--inspect") options.inspect = value();
         else if (flag == "--dump") options.dump = true;
@@ -38,7 +46,7 @@ Options parse(int argc, char **argv) {
     }
     if (options.help) return options;
     if (!options.inspect.empty()) {
-        if (!options.workload.empty() || !options.elem.empty() || options.n != 0 || !options.output.empty())
+        if (!options.workload.empty() || !options.elem.empty() || options.n != 0 || !options.output.empty() || options.seed_selected)
             throw std::runtime_error("--inspect cannot combine with generation options");
     } else if (options.workload.empty() || options.elem.empty() || options.n == 0 ||
                options.output.empty() || options.dump) {
@@ -48,7 +56,7 @@ Options parse(int argc, char **argv) {
 }
 
 template <typename T> void generate(const Options &options) {
-    const auto fixture = generate_fixture<T>(fixture_workload(options.workload), options.n);
+    const auto fixture = generate_fixture<T>(fixture_workload(options.workload), options.n, options.seed);
     const auto bytes = encode_fixture(fixture);
     std::ofstream output(options.output, std::ios::binary | std::ios::trunc);
     if (!output) throw std::runtime_error("cannot write fixture: " + options.output.string());
@@ -79,7 +87,7 @@ int main(int argc, char **argv) {
     try {
         const auto options = parse(argc, argv);
         if (options.help) {
-            std::cout << "Usage: quickheap_fixture --generate WORKLOAD --elem TYPE --n N --output FILE\n"
+            std::cout << "Usage: quickheap_fixture --generate WORKLOAD --elem TYPE --n N --output FILE [--seed U64]\n"
                          "       quickheap_fixture --inspect FILE [--dump]\n"
                          "Types: i32, i64, u32, u64. Size: 1 through 2^25.\n"
                          "--dump emits decoded unsigned key bits or offsets.\n";

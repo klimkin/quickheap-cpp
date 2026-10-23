@@ -3,6 +3,10 @@
 `verify.py` builds C++ benchmark packages, runs CTest through Conan recipes, and verifies installed CLIs and reports. Each selected axis forces local QuickHeap and benchmark builds. The driver resolves installed binaries from that invocation's Conan JSON graph.
 
 The matrix keeps compiler, scalar backend, sanitizer, and optional competitors under distinct axis names.
+`BENCH_CPU` selects one allowed online kernel-identified P core. Default selects
+first available P core. Every timing smoke runs through `taskset -c`; compiler
+builds retain parallel execution. CPU proof and observed child affinity remain
+in summary metadata. Missing Linux P-core proof fails verification before builds.
 
 | Axis suffix | Build | Scalar | Optional competitors |
 |---|---|---|---|

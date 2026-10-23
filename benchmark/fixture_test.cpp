@@ -86,3 +86,15 @@ TEST_CASE("Fixture parser and generator follow shared protocol", "[fixtures]") {
         catch (const std::runtime_error &) { type_rejected = true; }
         require(type_rejected, "runner accepted wrong fixture type");
 }
+
+TEST_CASE("Fixture seeds preserve default inputs and vary generated streams", "[fixtures]") {
+    for (const auto workload : {Workload::HeapSort, Workload::MonotoneConstantSize,
+                               Workload::MonotoneWiggle, Workload::RandomWiggle}) {
+        const auto original = encode_fixture(generate_fixture<std::int64_t>(workload, 8));
+        CHECK(original == encode_fixture(generate_fixture<std::int64_t>(workload, 8, default_fixture_seed)));
+        const auto changed = encode_fixture(generate_fixture<std::int64_t>(workload, 8, 7));
+        CHECK(changed != original);
+        CHECK(changed == encode_fixture(generate_fixture<std::int64_t>(workload, 8, 7)));
+        CHECK(fixture_digest(changed) != fixture_digest(original));
+    }
+}

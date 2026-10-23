@@ -36,9 +36,14 @@ class BenchmarkTestPackage(ConanFile):
             ("quickheap_bench", ["--fixture", os.path.join(assets, "fixtures", "MonotoneWiggle-i64-n8.qhf"),
                                  "--heap", "std_priority_queue", "--repeat", "1", "--warmup", "0"]),
         )
+        sys.path.insert(0, assets)
+        from cpu import pinned_command, select_cpu
+        cpu = select_cpu(os.environ.get("BENCH_CPU", "auto"))["cpu"]
         for name, arguments in commands:
             output = io.StringIO()
             command = [os.path.join(package, "bin", name + suffix), *arguments]
+            if name != "quickheap_fixture":
+                command = pinned_command(command, cpu)
             quoted = subprocess.list2cmdline(command) if suffix else shlex.join(command)
             self.run(quoted, env="conanrun", stdout=output)
             rows = list(csv.DictReader(io.StringIO(output.getvalue())))

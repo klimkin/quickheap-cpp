@@ -29,6 +29,8 @@ class QuickHeapBenchmarkConan(ConanFile):
         "COVERAGE.md",
         "verification.md",
         "verify.py",
+        "cpu.py",
+        "cpu_test.py",
         "verify_pair.py",
         "verify_scalar.py",
         "verify_graph.py",
@@ -65,6 +67,11 @@ class QuickHeapBenchmarkConan(ConanFile):
 
     def generate(self):
         toolchain = CMakeToolchain(self)
+        if os.environ.get("BENCH_CPU"):
+            import sys
+            sys.path.insert(0, self.source_folder)
+            from cpu import select_cpu
+            toolchain.cache_variables["QUICKHEAP_BENCH_CPU"] = select_cpu(os.environ["BENCH_CPU"])["cpu"]
         toolchain.cache_variables["QUICKHEAP_SCALAR"] = bool(
             self.dependencies["quickheap"].options.scalar
         )

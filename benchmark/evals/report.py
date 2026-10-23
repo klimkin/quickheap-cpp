@@ -13,6 +13,9 @@ import re
 import statistics
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from cpu import validate_record
+
 
 FACTORS = {
     "HeapSort": 1, "MonotoneConstantSize": 10, "RandomConstantSize": 10,
@@ -330,6 +333,13 @@ def generate(args):
     profile = getattr(args, "profile", "controlled-operations")
     fixtures = read_fixtures(args.fixtures) if profile == "controlled-operations" else {}
     summaries, inputs = read_results(args.csv, fixtures, protocol, profile)
+    run_metadata = None
+    metadata_path = getattr(args, "run_metadata", None)
+    if metadata_path:
+        raw = metadata_path.read_bytes()
+        value = json.loads(raw)
+        validate_record(value)
+        run_metadata = {"source": str(metadata_path), "sha256": sha256(raw), "value": value}
     archive = []
     if args.archive:
         for asset in historical["assets"]:
@@ -346,6 +356,10 @@ def generate(args):
                 "normalization": "ops * log2(n), applied once to timing and comparisons",
                 "inputs": [], "fixtures": [], "builds": [], "provenance": [], "archive": [],
                 "python": sys.version.split()[0], "plotting": None}
+    if run_metadata:
+        manifest["run_metadata"] = run_metadata
+        manifest["fixture_inventory"] = sorted(fixtures)
+        (output / "provenance" / "cpu.json").write_bytes(metadata_path.read_bytes())
     for source in inputs:
         target = f"inputs/{source['sha256']}.csv"
         (output / target).write_bytes(source["raw"])
@@ -397,6 +411,7 @@ def main():
     parser.add_argument("--profile", choices=("original-rust", "controlled-operations"), default="controlled-operations")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--fixtures", type=Path, default=Path(__file__).resolve().parent.parent / "fixtures")
+    parser.add_argument("--run-metadata", type=Path, help="kernel-identified P-core metadata")
     parser.add_argument("--plot", action="store_true", help="emit SVG and PDF metric plots with matplotlib")
     parser.add_argument("--archive", type=Path, help="pinned upstream evals/data directory to copy without reinterpretation")
     args = parser.parse_args()

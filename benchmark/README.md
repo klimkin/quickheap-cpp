@@ -41,9 +41,15 @@ sibling `../quickheap-rs`. Set `RUST_REPO` for another location.
 ```sh
 benchmark/compare.sh both
 benchmark/compare.sh controlled-operations build/controlled-comparison
-HOST_PROFILE=gcc-native BUILD_PROFILE=gcc-native-build \
+BENCH_CPU=2 HOST_PROFILE=gcc-native BUILD_PROFILE=gcc-native-build \
     benchmark/compare.sh original-rust build/original-comparison
 ```
+
+Every measured subprocess uses `taskset -c` on one kernel-identified P core.
+Set `BENCH_CPU=2` to select CPU 2. Default selects first allowed online CPU from
+Linux `cpu_core/cpus`. Missing proof or an E-core selection fails before build.
+Reports archive kernel core identity and observed child affinity. Builds retain
+parallel execution; CTest and packaged timing smokes use the same pinned core.
 
 Use installed Conan profile names or profile paths. Host profile defaults to
 `default`; build profile defaults to host profile. Set `CPP_AXIS=clang-native`
@@ -57,13 +63,21 @@ standard-library queues, which catalog labels as substitutes.
 Defaults use i64 and four active workloads at exponents 10, 12, 14, and 16.
 Set `MIN`, `MAX`, `STEP`, or `ELEM` to change controlled inputs. Controlled runs
 share fixture bytes, compare full correctness traces, and alternate runner order
-per fixture. `REPEAT` and `WARMUP` default to 3 and 1. Original profile uses every
+per fixture and process. `RUNS` defaults to seven independent process runs.
+`SEEDS=1363692610,7,19` selects distinct controlled fixture streams; default seed
+preserves existing fixture bytes. `REPEAT` and `WARMUP` default to 3 and 1.
+Original profile uses every
 exponent between `MIN` and `MAX`, fixed three repeats, one warmup, and cutoffs.
 Original Rust runs all enabled registrations; C++ selects chosen counterpart.
 
 Output directory must be new. Omitted directory creates `build/compare-*`.
-Each profile writes raw CSVs and `report/` containing summary CSV, LaTeX,
-paper Markdown, SVG, PDF, and provenance. Top-level logs retain commands,
+Each profile writes raw CSVs and full reports under `process-N/report/`, containing
+summary CSV, LaTeX, paper Markdown, SVG, PDF, and provenance. Profile `report/`
+aggregates process medians and their range without merging or renumbering trials,
+and emits Markdown, LaTeX, SVG, and PDF for complete groups.
+Its manifest attributes each input report and CPU identity. Original cutoffs can
+omit larger groups from some processes; aggregate rows retain observed process
+counts and manifest records incomplete groups. Controlled missing groups fail. Top-level logs retain commands,
 build output, source state, original repair manifests when present, and CPU data.
 Original results retain reference revision and declared Rust repairs.
 
@@ -80,7 +94,7 @@ Read [protocol](PROTOCOL.md) for lifecycle, workload, and provenance rules.
 
 ```sh
 quickheap_fixture --generate MonotoneConstantSize --elem i64 --n 1024 --output input.qhf
-quickheap_bench --profile controlled-operations --fixture input.qhf --heap std_priority_queue --repeat 3 > paired.csv
+taskset -c 2 quickheap_bench --profile controlled-operations --fixture input.qhf --heap std_priority_queue --repeat 3 > paired.csv
 quickheap_bench --fixture input.qhf --heap std_priority_queue --verify-only
 ```
 

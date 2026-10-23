@@ -263,9 +263,12 @@ class FixtureRng {
     std::uint64_t state_;
 };
 
-template <typename T> Fixture<T> generate_fixture(Workload workload, std::size_t n) {
+inline constexpr std::uint64_t default_fixture_seed = 0x51484c42ULL;
+
+template <typename T> Fixture<T> generate_fixture(Workload workload, std::size_t n,
+                                                 std::uint64_t seed = default_fixture_seed) {
     const auto shape = fixture_shape(workload, n);
-    FixtureRng rng(0x51484c42ULL ^ (static_cast<std::uint64_t>(workload) << 56) ^
+    FixtureRng rng(seed ^ (static_cast<std::uint64_t>(workload) << 56) ^
                    (static_cast<std::uint64_t>(sizeof(T)) << 48) ^ n);
     RawFixture raw{std::string(key_name<T>()), workload, n, {}, {}, {}};
     const auto next = [&]() -> std::uint64_t {

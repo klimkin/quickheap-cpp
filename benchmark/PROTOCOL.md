@@ -38,6 +38,9 @@ Existing unsafe SIMD call at `quickheap-dev/src/lib.rs:331` prevents original Ru
 C++ generates fixtures once. Both runners consume exact fixture bytes. Each fixture contains workload name, key type, size, and independent input streams. Monotone streams contain offsets. Other streams contain unsigned key bits, decoded before timing.
 
 `QHB1 <elem> <workload> <n>` starts fixture. `setup <count>` precedes setup values. `timed <count>` precedes timed values. Decimal unsigned integers use whitespace separators. Reader rejects invalid fields, sizes, counts, widths, and trailing values. Digest `fnv1a64:<16 hexadecimal digits>` covers exact bytes. Digest identifies inputs and has no security role.
+Fixture generator accepts `--seed` as unsigned 64-bit decimal. Default seed
+1363692610 preserves existing deterministic streams. Each selected seed yields
+independently attributed fixture bytes; seed selection changes no timing policy.
 
 ### Lifecycle
 
@@ -69,6 +72,22 @@ Defaults select active workloads `HeapSort`, `MonotoneConstantSize`, `MonotoneWi
 | MostlyPushDecreasing | 0 | 10n keys | 10 |
 
 MonotoneConstantSize setup repeats push, pop, push `n+50` times from initial last key zero. Each dependent push adds next offset to actual popped key. Wiggle grows with push, pop, push `n` times, then shrinks with pop, push, pop `n` times. Shrinking round's second pop does not update next round's last key.
+
+### CPU and process identity
+
+Comparison launcher and verification matrix run measured subprocesses through
+`taskset -c` on one allowed online P core. Kernel `cpu_core/cpus` proves core
+class. Frequency is not proof. Child affinity probe must observe exactly the
+selected CPU. `BENCH_CPU` selects CPU or defaults to first allowed P core.
+Missing kernel proof and E-core selections fail. Compiler builds remain parallel.
+
+`RUNS` defaults to seven independent comparison process runs. Runner order
+alternates per process. Original runner retains exactly three repeats and one
+warmup per invocation. Each invocation gets separate validated report. Aggregate
+report contains median and range of process medians, attributed report manifests,
+CPU metadata, and observed process count. Original cutoffs may leave incomplete
+larger groups; counts expose this. Controlled missing process groups or a missing
+language fail aggregation. Reports never relabel original trial indices.
 
 ### Result identity
 

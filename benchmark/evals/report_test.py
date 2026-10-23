@@ -56,6 +56,25 @@ class ReportContract(unittest.TestCase):
     def read(self, rows):
         return report.read_results([self.source(rows)], report.read_fixtures(self.fixtures), self.protocol)[0]
 
+    def test_run_metadata_requires_observed_performance_core(self):
+        row = self.rows()
+        source = self.source(row)
+        metadata = self.root / "cpu.json"
+        record = {"schema": "quickheap-cpu-v1", "cpu": 2, "core_class": "P", "performance_cpus": "0-3",
+                  "allowed_cpus": [0, 1, 2, 3], "online_cpus": [0, 1, 2, 3], "observed_affinity": [2]}
+        metadata.write_text(json.dumps(record))
+        args = argparse.Namespace(csv=[source], fixtures=self.fixtures, output=self.root / "report",
+                                  archive=None, plot=False, run_metadata=metadata)
+        report.generate(args)
+        manifest = json.loads((args.output / "manifest.json").read_text())
+        self.assertEqual(manifest["run_metadata"]["value"], record)
+        self.assertEqual((args.output / "provenance/cpu.json").read_bytes(), metadata.read_bytes())
+        record["cpu"] = 4
+        record["observed_affinity"] = [4]
+        metadata.write_text(json.dumps(record))
+        with self.assertRaisesRegex(ValueError, "P-core metadata"):
+            report.generate(args)
+
     def test_workload_factor_applies_once(self):
         for workload in report.FACTORS:
             with self.subTest(workload=workload):

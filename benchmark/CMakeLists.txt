@@ -4,6 +4,9 @@ project(quickheap_bench LANGUAGES CXX)
 include(GNUInstallDirs)
 include(CTest)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+if(DEFINED QUICKHEAP_BENCH_CPU)
+    set(CMAKE_TEST_LAUNCHER "taskset;-c;${QUICKHEAP_BENCH_CPU}")
+endif()
 
 option(QUICKHEAP_SCALAR "Build scalar benchmark kernels only" OFF)
 option(QUICKHEAP_BENCH_BOOST "Build Boost benchmark competitors" OFF)
@@ -122,6 +125,10 @@ if(BUILD_TESTING)
     find_package(Python3 COMPONENTS Interpreter REQUIRED)
     add_test(NAME quickheap_report_arithmetic
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/evals/arithmetic_test.py)
+    add_test(NAME quickheap_process_report_contract
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/evals/aggregate_test.py)
+    add_test(NAME quickheap_cpu_contract
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/cpu_test.py)
     add_test(NAME quickheap_report_contract
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/evals/report_test.py)
     add_test(NAME quickheap_fixture_inspect
@@ -181,6 +188,6 @@ install(DIRECTORY evals/ DESTINATION ${CMAKE_INSTALL_DATADIR}/quickheap-bench/ev
 install(FILES README.md DESTINATION ${CMAKE_INSTALL_DATADIR}/quickheap-bench)
 install(FILES protocol.json catalog.csv DESTINATION ${CMAKE_INSTALL_DATADIR}/quickheap-bench)
 install(FILES PROTOCOL.md COVERAGE.md verification.md DESTINATION ${CMAKE_INSTALL_DATADIR}/quickheap-bench)
-install(PROGRAMS verify.py verify_pair.py verify_scalar.py verify_graph.py DESTINATION ${CMAKE_INSTALL_DATADIR}/quickheap-bench)
+install(PROGRAMS cpu.py verify.py verify_pair.py verify_scalar.py verify_graph.py DESTINATION ${CMAKE_INSTALL_DATADIR}/quickheap-bench)
 install(DIRECTORY fixtures/ DESTINATION ${CMAKE_INSTALL_DATADIR}/quickheap-bench/fixtures
     FILES_MATCHING PATTERN "*.qhf")

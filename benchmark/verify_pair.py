@@ -7,9 +7,13 @@ import io
 import re
 from pathlib import Path
 import subprocess
+import os
+
+from cpu import pinned_command, select_cpu
 
 
 def run(command):
+    command = pinned_command(command, select_cpu(os.environ.get("BENCH_CPU", "auto"))["cpu"])
     return subprocess.run(command, check=True, text=True, capture_output=True).stdout
 
 
