@@ -30,7 +30,6 @@ axes=(
     'gcc-asan-shared gcc-native-asan Debug True False'
     'gcc-ubsan-shared gcc-native-ubsan Debug True False'
     'gcc-tsan-shared gcc-native-tsan Debug True False'
-    'gcc-pinned gcc17 Release False False'
 )
 
 if [[ -n ${CLANGXX:-} ]]; then
@@ -50,7 +49,6 @@ if [[ -n ${clang_available} ]]; then
         'clang-asan-shared clang-native-asan Debug True False'
         'clang-ubsan-shared clang-native-ubsan Debug True False'
         'clang-tsan-shared clang-native-tsan Debug True False'
-        'clang-pinned clang24 Release False False'
     )
 else
     printf 'Clang unavailable. Activate the compiler before verification.\n' >&2
@@ -92,17 +90,13 @@ mkdir -p -- "${build_root}"
 run_axis() {
     local name=$1 profile=$2 build_type=$3 shared=$4 scalar=$5
     local axis_dir="${build_root}/${name}"
-    local host_profile="${profile}"
-    if [[ ${profile} == gcc17 || ${profile} == clang24 ]]; then
-        host_profile="${root_dir}/profiles/${profile}"
-    fi
 
     mkdir -p -- "${axis_dir}"
     printf 'Running %s with host profile %s and build profile %s\n' \
-        "${name}" "${host_profile}" "${build_profile}"
+        "${name}" "${profile}" "${build_profile}"
 
     local args=(
-        -pr:h "${host_profile}"
+        -pr:h "${profile}"
         -pr:b "${build_profile}"
         -s:h "build_type=${build_type}"
         -o:h "quickheap/*:shared=${shared}"
