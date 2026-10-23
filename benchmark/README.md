@@ -29,9 +29,48 @@ python3 quickheap-dev/bench/profiles.py --profile controlled-operations \
     --fixture ../quickheap-cpp/input.qhf --heap binary_heap --repeat 3 > controlled-rust.csv
 ```
 
-Original profile keeps one warmup, three repeats, fresh random inputs, original reservation, timed input and queue destruction, and per-workload cutoffs. Original Rust runner exports no input fixtures. Cross-language inputs match distributions. Existing unsafe SIMD compile failure prevents running unchanged original Rust on current nightly. Launcher reports failure without changing source or substituting another runner.
+Original profile keeps one warmup, three repeats, fresh random inputs, original reservation, timed input and queue destruction, and per-workload cutoffs. Original Rust runner exports no input fixtures. Cross-language inputs match distributions. Unrepaired original Rust fails compilation on current nightly. Rust launcher can accept declared repairs under separately attributed source revisions. Failed builds never substitute another runner.
 
 Controlled profile excludes construction, setup, validation, and destruction. Both languages consume identical fixture bytes. Compare results within one profile. Profile selection matches workload policy; [coverage catalog](COVERAGE.md) records implementation parity separately.
+
+## Build and compare both repositories
+
+Run [`compare.sh`](compare.sh) from the C++ checkout. Rust checkout defaults to
+sibling `../quickheap-rs`. Set `RUST_REPO` for another location.
+
+```sh
+benchmark/compare.sh both
+benchmark/compare.sh controlled-operations build/controlled-comparison
+HOST_PROFILE=gcc-native BUILD_PROFILE=gcc-native-build \
+    benchmark/compare.sh original-rust build/original-comparison
+```
+
+Use installed Conan profile names or profile paths. Host profile defaults to
+`default`; build profile defaults to host profile. Set `CPP_AXIS=clang-native`
+for a Clang host profile. Python requires matplotlib. Run `--help` for options.
+
+Script builds current local C++ library and benchmark packages through
+`verify.py`, completes package checks, and builds Rust in a fresh target directory.
+Default pair compares production Quickheap with AVX2. Set `PAIR=std` to compare
+standard-library queues, which catalog labels as substitutes.
+
+Defaults use i64 and four active workloads at exponents 10, 12, 14, and 16.
+Set `MIN`, `MAX`, `STEP`, or `ELEM` to change controlled inputs. Controlled runs
+share fixture bytes, compare full correctness traces, and alternate runner order
+per fixture. `REPEAT` and `WARMUP` default to 3 and 1. Original profile uses every
+exponent between `MIN` and `MAX`, fixed three repeats, one warmup, and cutoffs.
+Original Rust runs all enabled registrations; C++ selects chosen counterpart.
+
+Output directory must be new. Omitted directory creates `build/compare-*`.
+Each profile writes raw CSVs and `report/` containing summary CSV, LaTeX,
+paper Markdown, SVG, PDF, and provenance. Top-level logs retain commands,
+build output, source state, original repair manifests when present, and CPU data.
+Original results retain reference revision and declared Rust repairs.
+
+`status.tsv` records completed and failed phases. Exit code 0 requires all
+selected profiles to pass. With `both`, original failure still permits controlled
+execution; script exits nonzero and retains failure logs. Failed profile produces
+no comparison report.
 
 ## Run paired fixtures
 
