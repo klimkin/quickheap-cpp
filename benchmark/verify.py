@@ -254,12 +254,28 @@ def packaged_checks(checks, package):
     for row in paired_rows:
         if row.get("protocol") != "quickheap-cpp-v1":
             raise CheckFailure("paired fixture result lacks protocol identity")
+        if (row.get("profile"), row.get("input_policy"), row.get("cutoff")) != (
+                "controlled-operations", "shared-fixture", "disabled"):
+            raise CheckFailure("paired fixture result lacks controlled profile identity")
         for column in ("build", "backend", "fixture_digest", "reservation", "timer", "repeats", "warmup"):
             if not row.get(column):
                 raise CheckFailure(f"paired fixture result lacks {column}")
     common = ["--min", "5", "--max", "5", "--repeat", "1", "--i32", "--i64", "--u32", "--u64"]
     synthetic_csv = checks.run("packaged-synthetic", [binary("quickheap_bench"), *common])
     read_csv(synthetic_csv)
+    original_csv = checks.run("packaged-original-profile", [binary("quickheap_bench"),
+        "--profile", "original-rust", "--min", "5", "--max", "5", "--i64",
+        "--heap", "std_priority_queue"])
+    original_rows = read_csv(original_csv)
+    if len(original_rows) != 12 or any(
+            (row.get("profile"), row.get("input_policy"), row.get("reservation"),
+             row.get("timer"), row.get("repeats"), row.get("warmup"), row.get("cutoff")) !=
+            ("original-rust", "fresh-random-original", "reserve:1048576",
+             "workload-input-queue-destruction", "3", "1", "32") for row in original_rows):
+        raise CheckFailure("original profile result violates lifecycle or fixed schedule")
+    original_report = checks.directory / "original-report"
+    checks.run("report-original", [sys.executable, str(assets / "evals/report.py"),
+        str(original_csv), "--profile", "original-rust", "--output", str(original_report)])
     for mode in ("variants", "ablation", "comparisons", "partition", "rebalancing"):
         path = checks.run(f"packaged-experiment-{mode}", [binary("quickheap_experiments"), "--mode", mode, *common])
         read_csv(path)

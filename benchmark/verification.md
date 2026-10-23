@@ -37,7 +37,7 @@ Installed checks require these benchmark assets.
 - `share/quickheap-bench/protocol.json` and `fixtures/*.qhf`.
 - Installed graph fixtures, reporting scripts, `run-all.sh`, and README.
 
-The fixture CLI inspects every installed input. `quickheap_bench --verify-only` validates every fixture with `std_priority_queue` outside timing. One fixture runs through the timed CLI. Native smoke runs cover all four integer types. All five experiment modes and both graph fixtures emit valid CSV. Reporting consumes installed benchmark output and emits summary CSV, graph-weight CSV, and an SVG plot.
+The fixture CLI inspects every installed input. `quickheap_bench --verify-only` validates every fixture with `std_priority_queue` outside timing. One fixture runs through the timed CLI. Native smoke runs cover all four integer types. Installed original-profile smoke checks fixed repeats, reservation metadata, timer identity, and original report generation. Lifecycle CTest verifies actual destruction boundaries. All five experiment modes and both graph fixtures emit valid CSV. Reporting consumes installed benchmark output and emits summary CSV, graph-weight CSV, and an SVG plot.
 
 Conan creation also runs each package's own `test_package`. The driver copies those consumers into axis-specific directories to preserve independent artifacts. Benchmark creation must resolve the same local QuickHeap recipe revision, package ID, and package revision as the preceding QuickHeap build.
 

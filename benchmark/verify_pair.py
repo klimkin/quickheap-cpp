@@ -37,16 +37,16 @@ def main():
         print(f'PASS {fixture.name} {metadata["fixture_digest"]}')
         if args.cpp_bench:
             cpp_trace = run([str(args.cpp_bench), '--fixture', str(fixture), '--heap',
-                             'std_priority_queue', '--verify-only'])
+                             'std_priority_queue', '--profile', 'controlled-operations', '--verify-only'])
             rust_trace = run([str(args.rust_bench), '--fixture', str(fixture), '--heap',
-                              'binary_heap', '--verify-only'])
+                              'binary_heap', '--profile', 'controlled-operations', '--verify-only'])
             if cpp_trace != rust_trace:
                 raise ValueError(f'{fixture}: full correctness trace differs')
             rows = []
             for binary, heap in ((args.cpp_bench, 'std_priority_queue'),
                                  (args.rust_bench, 'binary_heap')):
                 output = run([str(binary), '--fixture', str(fixture), '--heap', heap,
-                              '--repeat', '1', '--warmup', '0'])
+                              '--profile', 'controlled-operations', '--repeat', '1', '--warmup', '0'])
                 result = list(csv.DictReader(io.StringIO(output)))
                 if len(result) != 1 or None in result[0] or None in result[0].values():
                     raise ValueError(f'{binary}: malformed paired result')
@@ -57,6 +57,9 @@ def main():
                         raise ValueError(f'{binary}: missing {column}')
                 rows.append(row)
             for row in rows:
+                if (row.get('profile'), row.get('input_policy'), row.get('cutoff')) != (
+                        'controlled-operations', 'shared-fixture', 'disabled'):
+                    raise ValueError(f'{fixture}: explicit controlled profile identity differs')
                 for column in ('protocol', 'elem', 'workload', 'n', 'fixture_digest'):
                     if row[column] != metadata[column]:
                         raise ValueError(f'{fixture}: result does not identify decoded {column}')

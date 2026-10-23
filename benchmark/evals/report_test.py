@@ -109,6 +109,46 @@ class ReportContract(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "fixture digest"):
             self.read(rows)
 
+    def test_original_fresh_trials_group_without_shared_fixture_claim(self):
+        rows = self.rows(heap="std_priority_queue")
+        for repeat, row in enumerate(rows):
+            row.update(protocol=report.ORIGINAL_PROTOCOL, profile="original-rust",
+                       input_policy="fresh-random-original", cutoff="32",
+                       timer="workload-input-queue-destruction",
+                       fixture_digest="fnv1a64:" + str(repeat) * 16,
+                       reservation="reserve:1048576", push_comparisons="0.0", pop_comparisons="0.0")
+        summaries, _ = report.read_results([self.source(rows)], {}, self.protocol, "original-rust")
+        self.assertEqual(len(summaries), 1)
+        self.assertEqual(summaries[0].identity.fixture_digest, "")
+        self.assertEqual(summaries[0].median, 7)
+        rust = [dict(row, build=RUST_BUILD, heap="alloc::collections::binary_heap::BinaryHeap", fixture_digest="") for row in rows]
+        summaries, _ = report.read_results([self.source(rows + rust)], {}, self.protocol, "original-rust")
+        self.assertEqual(len(summaries), 2)
+        with self.assertRaisesRegex(ValueError, "mixed profile"):
+            report.read_results([self.source(rows + self.rows())], {}, self.protocol, "original-rust")
+        for column, value in (("warmup", "0"), ("input_policy", "shared-fixture"),
+                              ("workload", "RandomConstantSize"), ("cutoff", "disabled"), ("fixture_digest", "")):
+            invalid = [dict(row) for row in rows]
+            invalid[0][column] = value
+            with self.subTest(column=column), self.assertRaises(ValueError):
+                report.read_results([self.source(invalid)], {}, self.protocol, "original-rust")
+
+    def test_original_report_regenerates_without_exported_rust_inputs(self):
+        rows = self.rows(build=RUST_BUILD)
+        for row in rows:
+            row.update(protocol=report.ORIGINAL_PROTOCOL, profile="original-rust",
+                       input_policy="fresh-random-original", cutoff="32", fixture_digest="",
+                       timer="workload-input-queue-destruction")
+        args = argparse.Namespace(csv=[self.source(rows)], fixtures=self.root / "absent",
+                                  output=self.root / "original", profile="original-rust", plot=False, archive=None)
+        report.generate(args)
+        manifest = json.loads((args.output / "manifest.json").read_text())
+        self.assertEqual(manifest["fixtures"], [])
+        self.assertEqual(manifest["profile"], "original-rust")
+        first = (args.output / "summary.csv").read_bytes()
+        report.generate(args)
+        self.assertEqual(first, (args.output / "summary.csv").read_bytes())
+
     def test_document_escape_preserves_literal_names(self):
         self.assertEqual(report.latex("a_b&c%{d}\\"), r"a\_b\&c\%\{d\}\textbackslash{}")
         self.assertEqual(report.markdown("a|<b>"), "a&#124;&lt;b&gt;")

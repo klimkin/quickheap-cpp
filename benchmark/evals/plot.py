@@ -96,6 +96,8 @@ def read_samples(source, args):
                 raise ValueError(f"{source}:{line}: partition counts must sum to n")
             if n == 0 or ops == 0:
                 raise ValueError(f"{source}:{line}: size and operation count must be positive")
+            if row.get("profile") == "original-rust" and args.metric != "nanos":
+                raise ValueError(f'{source}:{line}: original profile exposes timing only')
             if any(not row[column] for column in metrics):
                 unavailable += 1
                 continue
@@ -123,9 +125,19 @@ def read_samples(source, args):
             heap = row[heap_column] + (f" [{row['backend']}]" if partition else "")
             if row.get('protocol'):
                 build = row.get('build', '')
-                if not build or not row.get('fixture_digest'):
+                original = row.get('profile') == 'original-rust'
+                if original:
+                    if (row['protocol'] != 'quickheap-original-rust-a9f2518-v1' or
+                            row.get('input_policy') != 'fresh-random-original' or
+                            row.get('timer') != 'workload-input-queue-destruction' or
+                            row.get('cutoff') not in ('32', '128') or
+                            row.get('reservation') not in ('backend-default', 'reserve:1048576', 'reserve:268435456')):
+                        raise ValueError(f'{source}:{line}: original profile attribution differs')
+                if not build or (not original and not row.get('fixture_digest')):
                     raise ValueError(f'{source}:{line}: attributed CSV lacks build or fixture digest')
                 heap += f" [{row['backend']}; {hashlib.sha256(build.encode()).hexdigest()[:12]}; {row['protocol']}]"
+                if original:
+                    heap += f" [{row.get('reservation', '')}; cutoff={row.get('cutoff', '')}]"
             samples.append(Sample(kind, row.get("elem", ""),
                                   heap, row["workload"], row.get("graph", ""),
                                   n, unit, value / denominator))
@@ -217,6 +229,14 @@ def main():
         sources = []
         for path in args.csv:
             sources.extend(sorted(path.glob("*.csv")) if path.is_dir() else [path])
+        profiles = set()
+        for source in sources:
+            with source.open(newline="", encoding="utf-8") as stream:
+                for row in csv.DictReader(stream):
+                    if row.get("protocol"):
+                        profiles.add(row["protocol"])
+        if ("quickheap-original-rust-a9f2518-v1" in profiles and len(profiles) > 1):
+            raise ValueError("mixed benchmark profiles; generate separate reports")
         summaries = summarize([sample for source in sources for sample in read_samples(source, args)])
         if not summaries:
             raise ValueError("no usable benchmark rows")

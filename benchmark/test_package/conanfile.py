@@ -28,6 +28,8 @@ class BenchmarkTestPackage(ConanFile):
         suffix = ".exe" if self.settings.os == "Windows" else ""
         commands = (
             ("quickheap_bench", ["--min", "5", "--max", "5", "--repeat", "1"]),
+            ("quickheap_bench", ["--profile", "original-rust", "--min", "5", "--max", "5",
+                                 "--i64", "--heap", "std_priority_queue"]),
             ("quickheap_bench_graph", [os.path.join(assets, "data", "smoke.gr"), "--repeat", "1"]),
             ("quickheap_experiments", ["--mode", "variants", "--min", "8", "--max", "8", "--repeat", "1"]),
             ("quickheap_fixture", ["--inspect", os.path.join(assets, "fixtures", "HeapSort-i32-n8.qhf")]),

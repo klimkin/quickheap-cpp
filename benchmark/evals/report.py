@@ -19,6 +19,7 @@ FACTORS = {
     "MonotoneWiggle": 3, "RandomWiggle": 3, "GeometricMonotoneWiggle": 3,
     "WorstCaseDescending": 9, "MostlyPushDecreasing": 10,
 }
+ORIGINAL_PROTOCOL = "quickheap-original-rust-a9f2518-v1"
 PROVENANCE = ("protocol", "build", "backend", "fixture_digest", "reservation",
               "timer", "repeats", "warmup")
 METRICS = ("nanos", "comparisons", "capacity", "capacity_ratio", "allocated_key_bytes",
@@ -105,6 +106,9 @@ def read_fixtures(directory):
 
 @dataclass(frozen=True, order=True)
 class Identity:
+    profile: str
+    input_policy: str
+    cutoff: str
     language: str
     build: str
     protocol: str
@@ -135,8 +139,8 @@ class Summary:
     maximum: float
 
 
-def read_results(sources, fixtures, protocol):
-    groups, policies, schedule, inputs = {}, {}, set(), []
+def read_results(sources, fixtures, protocol, profile="controlled-operations"):
+    groups, policies, schedule, inputs, trial_digests = {}, {}, set(), [], {}
     for source in sorted(set(sources), key=str):
         raw = source.read_bytes()
         inputs.append({"source": str(source), "sha256": sha256(raw), "raw": raw})
@@ -153,37 +157,81 @@ def read_results(sources, fixtures, protocol):
             try:
                 if None in row or any(value is None for value in row.values()):
                     raise ValueError("malformed CSV row")
-                if any(not row[column] for column in required):
+                original = profile == "original-rust"
+                expected_protocol = ORIGINAL_PROTOCOL if original else protocol["protocol"]
+                if any(not row[column] for column in required - {"fixture_digest"}):
                     raise ValueError("empty attributed field")
-                if row["protocol"] != protocol["protocol"]:
-                    raise ValueError("historical or mixed protocol")
-                if row["timer"] != "workload-only-raii":
-                    raise ValueError("timer differs from paired C++ contract")
+                if row["protocol"] != expected_protocol or row.get("profile", profile) != profile:
+                    raise ValueError("historical or mixed profile/protocol")
+                input_policy = "fresh-random-original" if original else "shared-fixture"
+                timer = "workload-input-queue-destruction" if original else "workload-only-raii"
+                cutoff = row.get("cutoff", "disabled")
+                if row["timer"] != timer or row.get("input_policy", input_policy) != input_policy:
+                    raise ValueError("timer or input policy differs from selected profile")
+                if original and (row.get("profile") != profile or row.get("input_policy") != input_policy):
+                    raise ValueError("original results require explicit profile and input policy")
+                if (original and cutoff not in ("32", "128")) or (not original and cutoff != "disabled"):
+                    raise ValueError("cutoff differs from selected profile")
                 language = build_language(row["build"])
                 n, ops = integer(row["n"], "n", 1), integer(row["ops"], "ops", 1)
                 digest = row["fixture_digest"]
-                if not re.fullmatch(r"fnv1a64:[0-9a-f]{16}", digest) or digest not in fixtures:
-                    raise ValueError("fixture digest does not match supplied fixture bytes")
-                fixture = fixtures[digest]
-                if any(row[field] != str(fixture[field]) for field in ("elem", "workload", "n", "ops")):
-                    raise ValueError("result metadata differs from shared fixture")
+                if original:
+                    if row["elem"] not in ("i32", "i64") or row["workload"] not in (
+                            "HeapSort", "MonotoneConstantSize", "MonotoneWiggle", "RandomWiggle"):
+                        raise ValueError("original result uses inactive type or workload")
+                    if n < 2 or n > 33554432 or n & (n - 1) or ops != n * FACTORS[row["workload"]]:
+                        raise ValueError("original size or workload normalization differs")
+                    if language == "C++" and not digest:
+                        raise ValueError("C++ original result lacks trial input digest")
+                    if language == "Rust" and digest:
+                        raise ValueError("unchanged original Rust exports no trial input digest")
+                    if digest and not re.fullmatch(r"fnv1a64:[0-9a-f]{16}", digest):
+                        raise ValueError("invalid original trial input digest")
+                    if cutoff == "128" and (row["elem"], row["workload"]) != ("i64", "MonotoneConstantSize"):
+                        raise ValueError("original table type or workload differs")
+                    if language == "C++":
+                        trial_key = (row["build"], row["backend"], row["heap"], row["elem"], row["workload"], n)
+                        seen = trial_digests.setdefault(trial_key, set())
+                        if digest in seen:
+                            raise ValueError("C++ original trials reuse identical inputs")
+                        seen.add(digest)
+                    digest = ""
+                else:
+                    if not re.fullmatch(r"fnv1a64:[0-9a-f]{16}", digest) or digest not in fixtures:
+                        raise ValueError("fixture digest does not match supplied fixture bytes")
+                    fixture = fixtures[digest]
+                    if any(row[field] != str(fixture[field]) for field in ("elem", "workload", "n", "ops")):
+                        raise ValueError("result metadata differs from shared fixture")
                 repeats, warmup = integer(row["repeats"], "repeats", 1), integer(row["warmup"], "warmup")
                 repeat = integer(row["repeat"], "repeat")
                 if repeat >= repeats:
                     raise ValueError("repeat index outside declared schedule")
+                if original and (repeats, warmup) != (3, 1):
+                    raise ValueError("original profile requires three repeats and one warmup")
                 schedule.add((repeats, warmup))
                 reservation = row["reservation"]
-                if reservation != "backend-default" and not re.fullmatch(r"required-capacity:[1-9][0-9]*", reservation):
+                allowed_reserves = ("reserve:1048576", "reserve:268435456") if original else ()
+                if reservation != "backend-default" and reservation not in allowed_reserves and not (
+                        not original and re.fullmatch(r"required-capacity:[1-9][0-9]*", reservation)):
                     raise ValueError("unknown reservation policy")
-                identity = Identity(language, row["build"], row["protocol"], row["backend"], digest,
+                if original:
+                    heap = row["heap"]
+                    expected = ("reserve:1048576" if heap == "std_priority_queue" or
+                                "collections::binary_heap::BinaryHeap" in heap else
+                                "reserve:268435456" if heap == "original_quickheap" or
+                                "original_quickheap::OriginalQuickHeap" in heap else "backend-default")
+                    if reservation != expected:
+                        raise ValueError("reservation differs from original heap policy")
+                identity = Identity(profile, input_policy, cutoff, language, row["build"], row["protocol"], row["backend"], digest,
                                     row["elem"], row["heap"], row["workload"], n, ops,
                                     reservation, row["timer"], repeats, warmup)
                 policy_key = (digest, row["heap"])
-                policy = (reservation, row["timer"])
+                policy = (reservation, row["timer"], cutoff)
                 if policy_key in policies and policies[policy_key] != policy:
                     raise ValueError("inconsistent reservation or timer policy")
                 policies[policy_key] = policy
-                values = {metric: numeric(row[metric], metric) for metric in METRICS
+                measured = ("nanos",) if original else METRICS
+                values = {metric: numeric(row[metric], metric) for metric in measured
                           if metric in row and row[metric] and metric != "comparisons"}
                 pair = [metric in values for metric in ("push_comparisons", "pop_comparisons")]
                 if any(pair) and not all(pair):
@@ -251,7 +299,7 @@ def write_reports(summaries, output, historical):
     for summary in summaries:
         identity = summary.identity
         row = (identity.language, identity.build_id, identity.heap, identity.backend,
-               identity.fixture_digest.split(":")[1], identity.workload,
+               identity.fixture_digest.split(":")[-1] or "fresh random", identity.workload,
                identity.n, summary.metric, summary.units, f"{summary.median:.9g}", f"{summary.minimum:.9g}", f"{summary.maximum:.9g}")
         table.append("| " + " | ".join(map(markdown, row)) + " |")
         tex.append(" & ".join(map(latex, row)) + r" \\")
@@ -259,7 +307,7 @@ def write_reports(summaries, output, historical):
                 "Full build, fixture, policy, and unit identity appears in summary.csv and manifest.json.", r"\end{document}"])
     (output / "report.tex").write_text("\n".join(tex) + "\n", encoding="utf-8")
     paper = ["# Attributed benchmark results", "",
-             "Rows retain C++ protocol identity and distinct language, compiler build, backend, and fixture groups.",
+             "Rows retain selected profile and distinct language, compiler build, backend, and input-policy groups.",
              "Median and range describe supplied repeats. Results establish no speedup or algorithm equivalence claim.", "",
              "Timing and comparison metrics divide by `ops * log2(n)` once. Other metrics retain raw units.",
              "[Summary CSV](summary.csv) records full group identity and units. [Manifest](manifest.json) attributes copied inputs.", "",
@@ -279,8 +327,9 @@ def generate(args):
     protocol = json.loads(protocol_raw)
     historical_raw = (base / "historical.json").read_bytes()
     historical = json.loads(historical_raw)
-    fixtures = read_fixtures(args.fixtures)
-    summaries, inputs = read_results(args.csv, fixtures, protocol)
+    profile = getattr(args, "profile", "controlled-operations")
+    fixtures = read_fixtures(args.fixtures) if profile == "controlled-operations" else {}
+    summaries, inputs = read_results(args.csv, fixtures, protocol, profile)
     archive = []
     if args.archive:
         for asset in historical["assets"]:
@@ -292,7 +341,8 @@ def generate(args):
     output = args.output
     for directory in ("inputs", "fixtures", "provenance"):
         (output / directory).mkdir(parents=True, exist_ok=True)
-    manifest = {"schema": "quickheap-report-v1", "protocol": protocol["protocol"],
+    manifest = {"schema": "quickheap-report-v1", "profile": profile,
+                "protocol": ORIGINAL_PROTOCOL if profile == "original-rust" else protocol["protocol"],
                 "normalization": "ops * log2(n), applied once to timing and comparisons",
                 "inputs": [], "fixtures": [], "builds": [], "provenance": [], "archive": [],
                 "python": sys.version.split()[0], "plotting": None}
@@ -300,7 +350,7 @@ def generate(args):
         target = f"inputs/{source['sha256']}.csv"
         (output / target).write_bytes(source["raw"])
         manifest["inputs"].append({"source": source["source"], "path": target, "sha256": source["sha256"]})
-    for digest in sorted({summary.identity.fixture_digest for summary in summaries}):
+    for digest in sorted({summary.identity.fixture_digest for summary in summaries if summary.identity.fixture_digest}):
         fixture = fixtures[digest]
         target = f"fixtures/{sha256(fixture['raw'])}.qhf"
         (output / target).write_bytes(fixture["raw"])
@@ -344,6 +394,7 @@ def generate(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("csv", type=Path, nargs="+", help="attributed paired CSV files")
+    parser.add_argument("--profile", choices=("original-rust", "controlled-operations"), default="controlled-operations")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--fixtures", type=Path, default=Path(__file__).resolve().parent.parent / "fixtures")
     parser.add_argument("--plot", action="store_true", help="emit SVG and PDF metric plots with matplotlib")

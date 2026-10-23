@@ -84,6 +84,11 @@
       "detail": "Archived files cannot enter paired reports without original compiler, flags, CPU, lifecycle, and fixture identity.",
       "item": "Original measurement build provenance",
       "status": "unknown"
+    },
+    {
+      "detail": "Pinned development crate calls unsafe push_position without an unsafe block at quickheap-dev/src/lib.rs:331. Original profile preserves source and reports build failure.",
+      "item": "Original Rust runner execution",
+      "status": "tracked upstream defect"
     }
   ],
   "provenance": "Source revision identifies archived file bytes. Compiler, flags, CPU, timer, and input fixture provenance remain unknown.",
