@@ -1,5 +1,7 @@
 *.pyc
 /.audit/
+/.pi/
+/*-handoff-*.md
 /todo.md
 CMakeUserPresets.json
 __pycache__/

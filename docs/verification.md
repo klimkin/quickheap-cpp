@@ -1,93 +1,63 @@
-# Verification record
+# Verification
 
-Catch2 3.16.0 replaces GoogleTest and Google Benchmark. GCC 15 verification
-preserves all 97 unit cases and 28 null-pointer abort operations. Native
-Release and scalar Debug tests pass. All 360 benchmark configurations pass
-output, payload, and size validation; CTest selects 64 measurements at size
-1024. Native and scalar builds each pass 20 Rust/C++ differential traces.
-Static and shared Conan packages pass external C/C++ consumer tests.
+Conan build and package creation run correctness tests by default. Use a host
+profile for the target compiler and a build profile for tools. Host C++ language
+mode must be C++20.
 
-Negative control replaces child operations with a process that returns zero.
-All 28 abort assertions fail, confirming that normal exit cannot pass.
-Windows launcher uses a space-free child program name and searches PATH.
-Windows runtime checks remain unverified on this Linux host.
+## Check library configurations
 
-Catch2 reports time per replay. Independent queue/output state per measured
-run keeps setup, validation, and destruction outside timing. Batch memory
-scales with Catch2's calibrated iteration count. Smoke runs verify execution;
-no performance comparison is claimed.
+Run commands from repository root. Replace `default` with your profile names or
+paths. Configure profiles as described in [build instructions](../README.md).
 
-Conan lockfile pins Catch2 3.16.0 and available Highway 1.4.0 recipe revision
-`96e316cc0703d31a89fa299e24228050`. Previous Highway recipe revision is absent
-from Conan Center. Build-tool versions remain pinned. Current host lacks
-documented native profiles and Clang, so these checks use an isolated GCC 15
-profile. Earlier verification records follow.
+```sh
+conan build . -pr:h default -pr:b default -s:h compiler.cppstd=20 --build=missing
+conan create . -pr:h default -pr:b default -s:h compiler.cppstd=20 --build=missing
+conan create . -pr:h default -pr:b default -s:h compiler.cppstd=20 \
+    -o:h 'quickheap/*:shared=True' --build=missing
+conan build . -pr:h default -pr:b default -s:h compiler.cppstd=20 \
+    -s:h build_type=Debug -o:h 'quickheap/*:scalar=True' --build=missing
+```
 
-Port preserves production bucket algorithm and existing C/C++ declarations.
-Runtime tests cover all four signed/unsigned widths, both heap variants,
-random/increasing/decreasing/extreme-heavy input, vector boundaries, 100,000
-entries, moves, null C arguments, and capacity retention.
+Repeat with GCC and Clang host profiles. To check ASan, UBSan, or TSan, use a
+host profile with the corresponding sanitizer flags. Test static and shared
+packages separately. Run editable package operations sequentially within one
+Conan cache.
 
-| Check | Result |
+## Correctness coverage
+
+| Check | Coverage |
 | --- | --- |
-| Rust baseline | 81 tests and two doctests pass |
-| GCC 15 and Clang 21 | 97 GoogleTest cases pass |
-| Scalar Highway | 97 cases and 20 differential traces pass |
-| Native Highway | 20 Rust/Python/C++ differential traces pass |
-| GCC 15 ASan, UBSan, TSan | 97 cases pass under each sanitizer |
-| Static/shared Conan packages | External C and C++ callers pass |
-| Editable package | External C and C++ callers pass |
-| Benchmark smoke | 64 cases execute with validated outputs |
-| Independent review | Correctness and package reviewers report no remaining defect; [decision trail](../.audit/port.tsv) records verdicts |
-| GCC 17 and Clang 24 | Native/scalar tests, differential traces, static/shared and editable consumers pass |
-| GCC 17 and Clang 24 ASan/UBSan/TSan | Local tests and packaged C/C++ consumers pass |
-| Conan CMakeDeps | External C and C++ callers require only Quickheap |
-| Natural-owner matrix | All 20 axes pass with fresh build trees, including 12 static/shared sanitizer axes |
-| Full-feature lockfile | Regenerated graph matches committed lockfile |
-| Compiler cache | Central profiles set C and C++ ccache launchers for both compiler families |
+| Library tests | Signed and unsigned 32-bit and 64-bit keys, key-only and key/value heaps, duplicates, extrema, vector boundaries, moves, and capacity retention |
+| C API tests | C declarations, empty pops, null arguments, and abort behavior |
+| Allocation retry | Queue state remains valid after allocation failure and retry |
+| Package consumers | External C and C++ callers link against static and shared packages |
+| Differential traces | Deterministic traces agree with Rust and Python's min-heap oracle |
+| Benchmark tests | Shared fixtures, workload dependencies, timer boundaries, graph results, and report attribution |
 
-Independent reviewer reports additional scalar and AVX2 partition and pivot
-probes. Those probes were temporary review artifacts, not committed regression
-checks. Public behavior tests and differential scripts provide repeatable
-verification. Host lacks AVX-512 and Arm execution. Highway compiles
-available x86 targets, but those platforms need native runtime validation.
+Run differential checks against a built trace executable.
 
-No performance comparison is claimed. Smoke timings verify execution only.
-Benchmark replay includes script traversal, output recording, and payload
-checks, so timings measure that workload driver plus heap operations.
+```sh
+python3 scripts/differential.py build/Release/test/quickheap_trace
+```
 
-Highway 1.4.0 emitted an upstream CMake policy deprecation warning. Earlier
-GoogleTest 1.17.0 build emitted a Clang 24 character-conversion warning.
-Retained GoogleTest 1.18.0 build log contains no compiler warning.
-Quickheap compiles with `-Wall -Wextra -Werror` without project warnings.
-Benchmark smoke reports CPU scaling warnings. Full warning-free acceptance
-remains unmet because of upstream and measurement-environment warnings.
+Rust is required only for differential checks. Native and scalar Highway
+configurations require separate builds.
 
-Natural-owner refit uses central Conan profiles for compilers, linkers,
-ccache, and sanitizers. CMake target construction follows EBI source/test
-subdirectories. Conan CMakeDeps owns dependency propagation for both static
-and shared packages. See [refit decision trail](../.audit/refit.tsv) and
-[independent closure review](../.audit/refit-review.md).
+## Benchmark verification
 
-## C++ benchmark contract
+The separate benchmark package checks installed executables, fixtures, optional
+competitors, and reporting tools. Follow
+[benchmark verification instructions](../benchmark/verification.md) to select
+compiler, backend, sanitizer, and optional-dependency axes.
 
-`quickheap-cpp-v1` uses shared raw fixtures and direct workload loops.
-Independent reviews accepted fixture, timing, scalar, coverage, and reporting
-gates in order. Both languages match 21 input fixtures, 126 scalar bucket/count
-traces, production AVX2 full traces, and four graph result/count fixtures.
-Queue construction, setup, validation, and destruction stay outside timing.
-Timed monotone pushes depend on tested queue pops. Output recording stays
-outside timing.
+[Protocol](../benchmark/PROTOCOL.md) defines timing and attribution.
+[Coverage catalog](../benchmark/COVERAGE.md) identifies ports, substitutes, and
+remaining gaps. Correctness checks and benchmark smoke runs establish execution;
+they do not establish a performance advantage.
 
-Benchmark-owned matrix exercises GCC15/Clang21 native/scalar, ASan/UBSan/TSan,
-optional Boost/external queues, installed CLIs, fixtures, and reports.
-All14 axes passed at attributed source snapshots. Final GCC/Clang native/scalar
-package runs include active experiment direct-loop migration. Earlier sanitizer
-snapshots precede help and report-label edits. No performance winner claimed.
+## Platform coverage
 
-Reports regenerate attributed CSV, LaTeX, Markdown, SVG/PDF, and manifests.
-Six historical upstream files archive with verified hashes and unknown original
-measurement-build provenance. [Coverage catalog](../benchmark/COVERAGE.md)
-records exact source adapters, substitutes, and historical omissions.
-AVX512 execution remains unavailable on host. Native Windows and Arm execution
-remain unverified.
+Linux GCC and Clang, native and scalar Highway, sanitizers, and external package
+consumers have verification coverage. Native Windows, Arm, and AVX-512 execution
+remain unverified. Benchmark measurement requires the CPU-affinity prerequisites
+documented in the benchmark package.

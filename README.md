@@ -11,17 +11,24 @@ Requires Conan 2, CMake 4, Ninja, and a C++20 compiler. Public C++ headers
 support C++17 consumers. Conan profiles select build standard. Conan supplies
 Highway and Catch2 3.16.0 for library tests.
 
+If no Conan profile is configured, detect the installed compiler first.
+
 ```sh
-conan build . -pr:h gcc-native -pr:b gcc-native-build --build=missing
-conan create . -pr:h gcc-native -pr:b gcc-native-build --build=missing
+conan profile detect
+```
+
+Build with the detected profile or substitute your own host and build profiles.
+
+```sh
+conan build . -pr:h default -pr:b default -s:h compiler.cppstd=20 --build=missing
+conan create . -pr:h default -pr:b default -s:h compiler.cppstd=20 --build=missing
 ```
 
 Tests run by default. Add `-c tools.build:skip_test=True` to skip execution.
 
-Central Conan profiles own compiler discovery, linkers, ccache, and sanitizer
-flags. Install your workspace Conan configuration before building. Set
-`CONAN_HOME` before invoking Conan to select its cache. Use `clang-native`
-as host profile for Clang. Build profile remains `gcc-native-build`.
+Conan profiles select compilers, linkers, compiler caches, and sanitizer flags.
+Use separate host and build profiles when cross-compiling. Set `CONAN_HOME`
+before invoking Conan to select another cache.
 
 ## Use C++
 
@@ -97,21 +104,15 @@ package builds and tests without the `benchmark/` directory.
 
 ## Verify the port
 
+Conan build and package creation run correctness checks by default. Tests cover
+all integer types, both heap variants, C callers, and external C/C++ consumers.
+Differential checks compare deterministic traces with Rust and Python's
+min-heap oracle.
+
 ```sh
-scripts/verify.sh
-scripts/verify.sh gcc-release-static clang-debug-scalar
 python3 scripts/differential.py build/Release/test/quickheap_trace
 ```
 
-Matrix checks GCC and Clang, static and shared packages, scalar Debug builds,
-ASan, UBSan, TSan, and external C/C++ consumers. Full invocation also checks
-editable consumption and regenerates a full-feature lockfile under `build/verify`.
-Preflight rejects unknown or duplicate axes and existing Quickheap editables
-before building. Full invocation requires both compilers.
-Run editable operations and verification sequentially within one Conan home.
-Differential checks compare deterministic traces with Rust and Python's
-min-heap oracle. Rust is needed only for this comparison, never for building
-or using the C++ library.
-
-See [verification record](docs/verification.md) for executed checks and
-platform coverage.
+Rust is needed only for this comparison. See
+[verification instructions](docs/verification.md) for package configurations
+and platform coverage.

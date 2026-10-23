@@ -18,18 +18,29 @@ in summary metadata. Missing Linux P-core proof fails verification before builds
 | `boost` | Release | No | Boost |
 | `external` | Release | No | Pinned upstream C++ dependencies |
 
-Each suffix has `gcc-` and `clang-` axes. Sanitizer axes require matching `gcc-native-*` or `clang-native-*` Conan profiles. Remaining axes use `gcc-native` or `clang-native`. Missing profiles and unavailable compiler executables produce `skipped` axes. Skips keep the aggregate result incomplete and exit nonzero.
+Each suffix has `gcc-` and `clang-` axes. Select axes from one compiler family
+and provide your host and build profiles. Sanitizer axes require matching
+sanitizer flags in the host profile. Missing profiles and unavailable compiler
+executables produce `skipped` axes. Skips keep the aggregate result incomplete
+and exit nonzero.
 
 Run these commands from repository root.
 
 ```sh
 python3 benchmark/verify.py --list
 python3 benchmark/verify.py --axis gcc-native --axis gcc-scalar \
-    --build-profile gcc-native-build --output build/benchmark-verify
-python3 benchmark/verify.py --build-profile gcc-native-build
+    --host-profile default --build-profile default --output build/benchmark-verify
 ```
 
-`--axis` accepts repeated selections. Duplicate or unknown selections exit with code 2 before builds. Without `--axis`, the driver runs every axis. `--build-profile` defaults to `QUICKHEAP_BUILD_PROFILE`, then `gcc-native-build`. Host and build profiles remain separate. Host C++ language mode is C++20.
+Use GCC host profile for `gcc-` axes and Clang host profile for `clang-` axes.
+Configure host C++ language mode as C++20. To run a sanitizer axis, supply a
+profile that enables its sanitizer instead of the ordinary `default` profile.
+
+`--axis` accepts repeated selections. Duplicate or unknown selections exit with
+code 2 before builds. Without `--axis`, the driver runs every axis.
+`--host-profile` requires selected axes from one compiler family.
+`--build-profile` accepts a profile name or path. Host and build profiles remain
+separate.
 
 The driver requires Conan and compilers named by the resolved profiles. Report plotting requires matplotlib in the Python interpreter that runs `verify.py`. Failed plotting keeps the axis failed. The driver refuses QuickHeap editable registrations and never changes the editable registry.
 
@@ -49,6 +60,6 @@ Exit code 0 means every selected axis passed. Exit code 1 means failed checks, u
 
 This driver verifies package behavior. It does not compare performance across sanitizer axes or certify cross-language timing parity. Shared fixture correctness, workload dependency checks, lifecycle tests, and report provenance remain acceptance gates in their owning benchmark components.
 
-For local environments with different profile names, select axes from one compiler family and supply `--host-profile PATH` and `--build-profile PATH`. Sanitizer axes still require actual sanitizer flags in resolved profile. Profile overrides stay in provenance.
+Profile selections remain in provenance.
 
 Verification processes serialize access to shared Conan cache through a cache-owned lock. Independent runs retain separate output directories. This prevents simultaneous optional-dependency fetches from corrupting package-reference registration.

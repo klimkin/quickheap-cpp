@@ -41,7 +41,7 @@ sibling `../quickheap-rs`. Set `RUST_REPO` for another location.
 ```sh
 benchmark/compare.sh both
 benchmark/compare.sh controlled-operations build/controlled-comparison
-BENCH_CPU=2 HOST_PROFILE=gcc-native BUILD_PROFILE=gcc-native-build \
+BENCH_CPU=2 HOST_PROFILE=default BUILD_PROFILE=default \
     benchmark/compare.sh original-rust build/original-comparison
 ```
 
@@ -112,8 +112,8 @@ Create Quickheap in the local Conan cache, then build this directory as its own
 application. Run commands from the repository root.
 
 ```sh
-conan create . -pr:h gcc-native -pr:b gcc-native-build --build=missing
-conan build benchmark -pr:h gcc-native -pr:b gcc-native-build --build=missing
+conan create . -pr:h default -pr:b default -s:h compiler.cppstd=20 --build=missing
+conan build benchmark -pr:h default -pr:b default -s:h compiler.cppstd=20 --build=missing
 benchmark/build/Release/quickheap_bench --min 10 --max 20 --step 2 \
     --repeat 3 --i64 > plot.csv
 ```
