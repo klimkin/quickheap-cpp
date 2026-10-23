@@ -208,12 +208,12 @@ template <typename T, bool CountComparisons = false> class WeakHeap {
         if constexpr (CountComparisons) ++counter;
         if (!std::less<T>{}(elements_[pos], elements_[ancestor])) return false;
         std::swap(elements_[pos], elements_[ancestor]);
-        reverse_[pos] = !reverse_[pos];
+        reverse_[pos] ^= 1;
         return true;
     }
 
     std::vector<T> elements_;
-    std::vector<bool> reverse_;
+    std::vector<std::uint8_t> reverse_;
     ComparisonStats stats_;
 };
 
