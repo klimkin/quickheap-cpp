@@ -17,6 +17,9 @@ namespace hn = hwy::HWY_NAMESPACE;
 template <class T>
 std::size_t Position(const T* pivots, std::size_t count, T key) {
     if (count > 64) {
+        if (pivots[count - 1] > key) {
+            return count;
+        }
         std::size_t first = 0;
         std::size_t last = count;
         while (first < last) {
