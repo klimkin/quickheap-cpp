@@ -100,6 +100,23 @@ TEST_CASE("Monotone setup preserves heap dependency", "[direct][dependency]") {
     CHECK(changed.pushes[2] == original.pushes[2] + 7);
 }
 
+struct ValueControlledPopQueue : ControlledPopQueue {
+    explicit ValueControlledPopQueue(Item shift) : ControlledPopQueue{{}, shift, 0} {}
+    Item pop() { return *ControlledPopQueue::try_pop(); }
+    std::optional<Item> try_pop() { return -1; }
+};
+
+TEST_CASE("Monotone pushes depend on value-returning pops", "[direct][dependency]") {
+    auto fixture = generate_fixture<std::int32_t>(Workload::MonotoneWiggle, 1);
+    std::fill(fixture.offsets.begin(), fixture.offsets.end(), 1);
+    ValueControlledPopQueue original(0);
+    ValueControlledPopQueue changed(7);
+    execute_workload<Workload::MonotoneWiggle>(fixture, original);
+    execute_workload<Workload::MonotoneWiggle>(fixture, changed);
+    CHECK(original.pushes[0] == changed.pushes[0]);
+    CHECK(changed.pushes[1] == original.pushes[1] + 7);
+}
+
 TEMPLATE_TEST_CASE("Direct workloads validate every key and retained state", "[direct][correctness]",
                    std::int32_t, std::int64_t, std::uint32_t, std::uint64_t) {
     for (const auto &entry : workloads) {
@@ -172,6 +189,79 @@ struct CorruptRetainedQueue {
 TEST_CASE("Separate validation rejects corruption in retained keys", "[direct][correctness]") {
     const auto fixture = generate_fixture<std::int32_t>(Workload::RandomConstantSize, 1);
     REQUIRE_THROWS(validate_fixture(fixture, [] { return CorruptRetainedQueue{}; }));
+}
+
+enum class PopFault { Key, Payload, OptionalKey };
+
+struct DualPopQueue {
+    using Item = std::pair<std::int32_t, std::int32_t>;
+    StdKvHeap<std::int32_t> queue;
+    PopFault fault;
+    std::size_t corrupt_after = 0;
+    std::size_t pops = 0;
+
+    void push(std::int32_t key) { queue.push(key); }
+    Item pop() {
+        auto item = *queue.try_pop();
+        if (pops++ >= corrupt_after) {
+            if (fault == PopFault::Key) ++item.first;
+            else if (fault == PopFault::Payload) ++item.second;
+        }
+        return item;
+    }
+    std::optional<Item> try_pop() {
+        auto item = queue.try_pop();
+        if (item && fault == PopFault::OptionalKey) ++item->first;
+        return item;
+    }
+    std::size_t size() const { return queue.size(); }
+};
+
+TEST_CASE("Separate validation checks value-returning keys and payloads", "[direct][correctness]") {
+    auto fixture = generate_fixture<std::int32_t>(Workload::HeapSort, 8);
+    std::fill(fixture.keys.begin(), fixture.keys.end(), 7);
+    REQUIRE_THROWS_AS(validate_fixture(fixture, [] { return DualPopQueue{{}, PopFault::Key}; }),
+                      std::runtime_error);
+    REQUIRE_THROWS_AS(validate_fixture(fixture, [] { return DualPopQueue{{}, PopFault::Payload}; }),
+                      std::runtime_error);
+    REQUIRE_NOTHROW(validate_fixture(fixture, [] { return DualPopQueue{{}, PopFault::OptionalKey}; }));
+}
+
+TEST_CASE("Retained drain checks value-returning pops", "[direct][correctness]") {
+    auto fixture = generate_fixture<std::int32_t>(Workload::RandomConstantSize, 1);
+    std::fill(fixture.setup_keys.begin(), fixture.setup_keys.end(), 7);
+    std::fill(fixture.keys.begin(), fixture.keys.end(), 7);
+    REQUIRE_THROWS_AS(validate_fixture(fixture, [] { return DualPopQueue{{}, PopFault::Key, 51 + 10}; }),
+                      std::runtime_error);
+    REQUIRE_NOTHROW(validate_fixture(fixture, [] { return DualPopQueue{{}, PopFault::OptionalKey}; }));
+}
+
+struct EmptyValueQueue {
+    using Item = std::int32_t;
+    void push(Item) {}
+    Item pop() { throw std::logic_error("nonempty pop reached an empty queue"); }
+    std::optional<Item> try_pop() { return std::nullopt; }
+    std::size_t size() const { return 0; }
+};
+
+TEST_CASE("Separate validation rejects empty state before a nonempty pop", "[direct][correctness]") {
+    const auto fixture = generate_fixture<std::int32_t>(Workload::HeapSort, 1);
+    REQUIRE_THROWS_AS(validate_fixture(fixture, [] { return EmptyValueQueue{}; }), std::runtime_error);
+}
+
+struct VoidPopQueue {
+    using Item = std::int32_t;
+    StdKeyHeap<Item> queue;
+    void push(Item key) { queue.push(key); }
+    void pop() { throw std::logic_error("unrelated pop selected"); }
+    std::optional<Item> try_pop() { return queue.try_pop(); }
+};
+
+TEST_CASE("Direct extraction preserves checked fallback for void pops", "[direct][correctness]") {
+    VoidPopQueue queue;
+    queue.push(7);
+    CHECK(pop_key(queue) == 7);
+    CHECK_THROWS_AS(pop_key(queue), std::runtime_error);
 }
 
 TEMPLATE_TEST_CASE("Separate validation rejects monotone overflow before timing", "[direct][correctness]",

@@ -4,6 +4,7 @@
 #include "fixtures.hpp"
 
 #include <atomic>
+#include <concepts>
 #include <ostream>
 
 namespace quickheap::bench {
@@ -39,11 +40,17 @@ template <typename Function> decltype(auto) dispatch_workload(Workload workload,
     throw std::runtime_error("unknown direct workload");
 }
 
-template <typename Q> auto pop_key(Q &queue) {
-    const auto item = queue.try_pop();
-    if (!item) throw std::runtime_error("workload popped an empty heap");
-    return key_of(*item);
+template <typename Q> typename Q::Item pop_item(Q &queue) {
+    if constexpr (requires { { queue.pop() } -> std::same_as<typename Q::Item>; }) {
+        return queue.pop();
+    } else {
+        const auto item = queue.try_pop();
+        if (!item) throw std::runtime_error("workload popped an empty heap");
+        return *item;
+    }
 }
+
+template <typename Q> auto pop_key(Q &queue) { return key_of(pop_item(queue)); }
 
 template <bool Checked, typename T> inline T offset_key(T base, std::uint64_t offset) {
     if constexpr (Checked) {
@@ -158,10 +165,12 @@ template <typename T, typename Q> class ValidationQueue {
 
     std::optional<Item> try_pop() {
         const auto expected = reference_.try_pop();
-        const auto item = queue_.try_pop();
-        if (!expected || !item || key_of(*item) != *expected || !valid_payload(*item))
+        if (!expected || queue_.size() == 0)
             throw std::runtime_error("heap popped key or payload disagrees with fixture");
-        record("pop", key_of(*item));
+        const auto item = pop_item(queue_);
+        if (key_of(item) != *expected || !valid_payload(item))
+            throw std::runtime_error("heap popped key or payload disagrees with fixture");
+        record("pop", key_of(item));
         return item;
     }
 
@@ -170,10 +179,12 @@ template <typename T, typename Q> class ValidationQueue {
             throw std::runtime_error("heap final size disagrees with fixture");
         if (trace_) *trace_ << "final," << queue_.size() << '\n';
         while (const auto expected = reference_.try_pop()) {
-            const auto item = queue_.try_pop();
-            if (!item || key_of(*item) != *expected || !valid_payload(*item))
+            if (queue_.size() == 0)
                 throw std::runtime_error("heap retained key or payload disagrees with fixture");
-            record("drain", key_of(*item));
+            const auto item = pop_item(queue_);
+            if (key_of(item) != *expected || !valid_payload(item))
+                throw std::runtime_error("heap retained key or payload disagrees with fixture");
+            record("drain", key_of(item));
         }
         if (queue_.size() != 0 || queue_.try_pop())
             throw std::runtime_error("heap retained unexpected final keys");

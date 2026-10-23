@@ -293,6 +293,7 @@ template <typename T> class KeyQuickHeap {
   public:
     using Item = T;
     void push(T key) { heap_.push(key); }
+    T pop() { return heap_.pop(); }
     std::optional<T> try_pop() { return heap_.try_pop(); }
     std::size_t size() const { return heap_.size(); }
     std::size_t capacity() const { return heap_.capacity(); }
