@@ -13,6 +13,8 @@
 #include <utility>
 #include <vector>
 
+#include "branchless_sort.hpp"
+
 namespace quickheap::bench {
 
 struct ScalarCounters {
@@ -124,6 +126,7 @@ private:
     struct Sample { T key; std::size_t index; };
 
     std::vector<T> pivots_;
+    std::vector<T> merge_scratch_;
     std::vector<std::vector<T>> buckets_;
     std::size_t size_ = 0;
     std::uint64_t random_state_;
@@ -188,11 +191,22 @@ private:
         return order < 0 || (order == 0 && left.index < right.index);
     }
 
+    // A terminal bucket is a sorted run plus freshly pushed keys, so sort only the
+    // unsorted tail and merge it into the run.
+    void sort_bucket(std::vector<T>& bucket) {
+        const auto first = bucket.begin();
+        const auto run_end = std::is_sorted_until(first, bucket.end());
+        if (run_end == bucket.end()) return;
+        branchless_sort(&*run_end, static_cast<std::size_t>(bucket.end() - run_end));
+        const auto merge_begin = std::upper_bound(first, run_end, *run_end);
+        merge_scratch_.assign(merge_begin, run_end);
+        std::merge(merge_scratch_.begin(), merge_scratch_.end(), run_end, bucket.end(),
+                   merge_begin);
+    }
+
     std::size_t select_pivot(std::vector<T>& bucket) {
         if constexpr (Perfect) {
-            if (!std::is_sorted(bucket.begin(), bucket.end())) {
-                std::stable_sort(bucket.begin(), bucket.end());
-            }
+            sort_bucket(bucket);
             return (bucket.size() - 1) / 2;
         } else {
             std::array<Sample, M> samples{};

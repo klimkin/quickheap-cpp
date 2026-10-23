@@ -69,6 +69,27 @@ TEMPLATE_TEST_CASE("paired scalar configurations preserve queue order", "[scalar
     check_scalar_order<ScalarHeap<TestType, 1, true, true, true>>();
 }
 
+TEMPLATE_TEST_CASE("branchless sort matches std::sort", "[scalar-contract]",
+                   std::int8_t, std::uint16_t, std::int64_t, std::uint64_t) {
+    std::mt19937_64 random(7);
+    for (const std::size_t n : {0u, 1u, 2u, 20u, 21u, 63u, 64u, 65u, 1000u, 20000u}) {
+        for (const auto shape : {0, 1, 2, 3, 4}) {
+            std::vector<TestType> keys(n);
+            for (std::size_t i = 0; i < n; ++i) {
+                keys[i] = shape == 0 ? scalar_key_bits<TestType>(random())
+                    : shape == 1 ? static_cast<TestType>(random() % 3)
+                    : shape == 2 ? static_cast<TestType>(i)
+                    : shape == 3 ? static_cast<TestType>(n - i)
+                    : static_cast<TestType>(i % 17);
+            }
+            auto expected = keys;
+            std::sort(expected.begin(), expected.end());
+            branchless_sort(keys.data(), keys.size());
+            REQUIRE(keys == expected);
+        }
+    }
+}
+
 TEST_CASE("scripted duplicate pivot defines singleton split counts", "[scalar-contract]") {
     constexpr std::array<std::uint64_t, 1> script = {0};
     ScalarHeap<std::int64_t, 1, false, false, true> heap(script);
