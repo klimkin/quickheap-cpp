@@ -1,14 +1,45 @@
 # Benchmark protocol
 
+Two profiles answer different performance questions. `--profile controlled-operations` remains default.
+
+| Profile | Protocol | Comparison |
+| --- | --- | --- |
+| `original-rust` | `quickheap-original-rust-a9f2518-v1` | Original Rust workload distributions, reservation, timed lifecycle, schedule, and cutoffs. |
+| `controlled-operations` | `quickheap-cpp-v1` | Queue operations on identical shared fixture bytes, with preparation and destruction outside timing. |
+
+Each result retains profile and protocol. Reports reject mixed profiles. Neither profile establishes algorithm equivalence for catalog entries marked substitutes or gaps.
+
+## Original Rust compatibility
+
+Reference revision is `a9f2518d9ed452130361cfe1681c68625a68ab35`. Rust profile launcher invokes unchanged original `bench` example. C++ uses workload-specific loops with matching ownership and schedule policies. C++ validates a separate fresh input before each size/workload warmup; measured trials do not replay validation on their inputs. Checked monotone conversions remain inside original timed loops. Original Rust heaps, workloads, and timer remain authoritative.
+
+| Region | Work |
+| --- | --- |
+| Before timer | Generate fresh inputs, construct queue, reserve initial capacity, execute constant-size setup. |
+| Inside timer | Execute workload, release consumed input storage, observe final queue, destroy queue. HeapSort releases consumed key storage before its pop loop. |
+| After timer | Serialize result and compute median for cutoff. |
+
+Standard binary heap reserves `2^20` elements. Foreign original Quickheap reserves `2^28`. Other queues use backend defaults. Every size uses one warmup and three measured repeats with fresh random inputs.
+
+HeapSort samples full-width integer keys and replaces both extrema with adjacent values. Monotone workloads sample offsets in `[0,2^24)` for i32 and `[0,2^48)` for i64. RandomWiggle samples keys from same bounded ranges. C++ uses its own random generator. Original Rust uses unseeded `fastrand::Rng::new()` and exports no keys, offsets, or seed. Inputs therefore match distributions, not bytes. Rust fixture digest stays empty. C++ input digest identifies its own generated trial only.
+
+Traversal follows element type, upstream heap registration order, size, then active workload order. Sizes span exponents 10 through 25. After median exceeds 32 ns per `ops * log2(n)`, larger sizes skip for that heap and workload. Table uses i64, MonotoneConstantSize, exponent step 5, and cutoff 128. Original table returns after SIMD registrations. C++ exposes available production counterpart; missing development variants remain catalog gaps.
+
+C++ heap and workload filters select attributed subsets of active registrations. Original Rust launcher accepts original size, width, table, and build-feature controls. It rejects controlled fixture and trial controls. Compatibility timing excludes historical diagnostics modes, which retain their existing entrypoints.
+
+Existing unsafe SIMD call at `quickheap-dev/src/lib.rs:331` prevents original Rust runner from compiling on current nightly. Launcher returns that build failure. It never substitutes controlled runner. Fixing original implementation requires a separately attributed upstream change.
+
+## Controlled operations
+
 `quickheap-cpp-v1` defines paired experiments from C++ workload semantics. Historical source pins define registration provenance. Modified runners receive separate build identities.
 
-## Inputs
+### Inputs
 
 C++ generates fixtures once. Both runners consume exact fixture bytes. Each fixture contains workload name, key type, size, and independent input streams. Monotone streams contain offsets. Other streams contain unsigned key bits, decoded before timing.
 
 `QHB1 <elem> <workload> <n>` starts fixture. `setup <count>` precedes setup values. `timed <count>` precedes timed values. Decimal unsigned integers use whitespace separators. Reader rejects invalid fields, sizes, counts, widths, and trailing values. Digest `fnv1a64:<16 hexadecimal digits>` covers exact bytes. Digest identifies inputs and has no security role.
 
-## Lifecycle
+### Lifecycle
 
 | Region | Work |
 | --- | --- |
@@ -20,7 +51,7 @@ Validation uses separate queue state. It checks every popped key and payload, th
 
 Initial reservation defaults to backend construction and natural growth. Required fixed-capacity competitors disclose capacity. Historical Rust binary-heap reservation and iterator destruction do not define this protocol.
 
-## Schedule
+### Schedule
 
 Defaults select active workloads `HeapSort`, `MonotoneConstantSize`, `MonotoneWiggle`, and `RandomWiggle`. Explicit selection may include dormant workloads. Sizes span powers 10 through 25 with exponent step 1. Trials use one warmup and three measured repeats. Cutoff is disabled to preserve identical size sets. Explicit runner options remain result provenance.
 
@@ -39,7 +70,7 @@ Defaults select active workloads `HeapSort`, `MonotoneConstantSize`, `MonotoneWi
 
 MonotoneConstantSize setup repeats push, pop, push `n+50` times from initial last key zero. Each dependent push adds next offset to actual popped key. Wiggle grows with push, pop, push `n` times, then shrinks with pop, push, pop `n` times. Shrinking round's second pop does not update next round's last key.
 
-## Result identity
+### Result identity
 
 Each paired row retains protocol, source build digest, compiler/version/flags, implementation name, backend, fixture digest, reservation, timer boundary, repeats, and warmups. Historical opcode-replay rows cannot share paired identity. Standard-library and independently rewritten competitors remain declared substitutes until algorithm parity is verified.
 

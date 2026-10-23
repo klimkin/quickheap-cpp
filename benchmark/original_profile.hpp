@@ -52,7 +52,7 @@ void execute_original_workload(Fixture<T> &input, Q &queue) {
         std::vector<T>().swap(input.keys);
         for (std::size_t i = 0; i < input.n; ++i) pop_key(queue);
     } else {
-        execute_workload<W>(input, queue);
+        execute_workload<W, true>(input, queue);
         std::vector<T>().swap(input.keys);
         std::vector<std::uint64_t>().swap(input.offsets);
     }
@@ -65,7 +65,7 @@ auto original_trial(Fixture<T> input, Factory &&factory, Clock &&clock) {
         {
             auto queue = factory();
             auto owned_input = std::move(input);
-            setup_workload(owned_input, queue);
+            setup_workload<true>(owned_input, queue);
             std::vector<T>().swap(owned_input.setup_keys);
             std::vector<std::uint64_t>().swap(owned_input.setup_offsets);
             observe_queue(queue);
@@ -78,6 +78,6 @@ auto original_trial(Fixture<T> input, Factory &&factory, Clock &&clock) {
     });
 }
 
-} // namespace quickheap::bench
+}
 
 #endif

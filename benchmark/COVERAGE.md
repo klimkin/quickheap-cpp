@@ -2,6 +2,13 @@
 
 Source catalog follows Rust `a9f2518d9ed452130361cfe1681c68625a68ab35`. Status describes implementation identity, separate from workload timing protocol. Matching operation totals does not prove algorithm parity.
 
+Two profiles select workload policy independently of implementation identity.
+`original-rust` reproduces original active workload distributions and lifecycle.
+`controlled-operations` uses shared fixtures and C++ timer boundaries.
+C++ original defaults omit development SIMD configurations still marked gaps.
+Paired scalar and Orx substitutes retain their existing implementation names and catalog status.
+Original Rust source remains unchanged; current nightly compile error and missing initialized FFI dependencies can block execution.
+
 ## Active catalog
 
 | Upstream configuration | C++ counterpart | Status | Remaining gate |

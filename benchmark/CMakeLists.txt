@@ -91,7 +91,7 @@ target_link_libraries(quickheap_bench_graph PRIVATE quickheap_bench_backend)
 
 if(BUILD_TESTING)
     find_package(Catch2 3.16 REQUIRED CONFIG)
-    add_executable(quickheap_bench_tests graph_test.cpp workload_test.cpp experimental_heap_test.cpp competitor_test.cpp fixture_test.cpp direct_workload_test.cpp original_profile_test.cpp scalar_heap_test.cpp backend_test.cpp diagnostics_test.cpp)
+    add_executable(quickheap_bench_tests graph_test.cpp workload_test.cpp experimental_heap_test.cpp competitor_test.cpp fixture_test.cpp direct_workload_test.cpp original_profile_test.cpp profiles_test.cpp scalar_heap_test.cpp backend_test.cpp diagnostics_test.cpp)
     target_link_libraries(quickheap_bench_tests PRIVATE quickheap_bench_graph_support Catch2::Catch2WithMain)
     target_link_libraries(quickheap_bench_tests PRIVATE quickheap_bench_backend)
 endif()
@@ -134,6 +134,15 @@ if(BUILD_TESTING)
             --heap std_priority_queue --repeat 1 --warmup 0)
     add_test(NAME quickheap_graph_smoke
         COMMAND quickheap_bench_graph ${CMAKE_CURRENT_SOURCE_DIR}/data/smoke.gr --repeat 1)
+    add_test(NAME quickheap_original_profile_smoke
+        COMMAND quickheap_bench --profile original-rust --min 5 --max 5 --i64
+            --heap std_priority_queue)
+    add_test(NAME quickheap_original_profile_table
+        COMMAND quickheap_bench --profile original-rust --min 5 --max 5 --table)
+    add_test(NAME quickheap_original_profile_reject_fixture
+        COMMAND quickheap_bench --profile original-rust --fixture
+            ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/HeapSort-i32-n8.qhf)
+    set_tests_properties(quickheap_original_profile_reject_fixture PROPERTIES WILL_FAIL TRUE)
     add_test(NAME quickheap_native_smoke
         COMMAND quickheap_bench --min 5 --max 5 --repeat 1 --i32 --i64 --u32 --u64)
     add_test(NAME quickheap_graph_zero_weight

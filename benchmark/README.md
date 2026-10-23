@@ -9,6 +9,30 @@ Native runners write CSV to standard output and diagnostics to standard error.
 `--help` lists each runner's options. `quickheap_bench --list` lists enabled
 heaps, workloads, and element types.
 
+## Select benchmark profile
+
+Use `original-rust` to reproduce original Rust workload lifecycle. Use `controlled-operations` to compare queue operations on shared inputs. Controlled remains default.
+
+```sh
+quickheap_bench --profile original-rust --min 10 --max 16 --i64 \
+    --heap quickheap,std_priority_queue > original-cpp.csv
+quickheap_bench --profile controlled-operations --fixture input.qhf \
+    --heap std_priority_queue --repeat 3 > controlled-cpp.csv
+```
+
+Run Rust commands from Rust repository root.
+
+```sh
+python3 quickheap-dev/bench/profiles.py --profile original-rust \
+    --min 10 --max 16 --i64 > original-rust.csv
+python3 quickheap-dev/bench/profiles.py --profile controlled-operations \
+    --fixture ../quickheap-cpp/input.qhf --heap binary_heap --repeat 3 > controlled-rust.csv
+```
+
+Original profile keeps one warmup, three repeats, fresh random inputs, original reservation, timed input and queue destruction, and per-workload cutoffs. Original Rust runner exports no input fixtures. Cross-language inputs match distributions. Existing unsafe SIMD compile failure prevents running unchanged original Rust on current nightly. Launcher reports failure without changing source or substituting another runner.
+
+Controlled profile excludes construction, setup, validation, and destruction. Both languages consume identical fixture bytes. Compare results within one profile. Profile selection matches workload policy; [coverage catalog](COVERAGE.md) records implementation parity separately.
+
 ## Run paired fixtures
 
 `quickheap-cpp-v1` uses C++-owned timer boundaries and shared raw inputs.
@@ -17,7 +41,7 @@ Read [protocol](PROTOCOL.md) for lifecycle, workload, and provenance rules.
 
 ```sh
 quickheap_fixture --generate MonotoneConstantSize --elem i64 --n 1024 --output input.qhf
-quickheap_bench --fixture input.qhf --heap std_priority_queue --repeat 3 > paired.csv
+quickheap_bench --profile controlled-operations --fixture input.qhf --heap std_priority_queue --repeat 3 > paired.csv
 quickheap_bench --fixture input.qhf --heap std_priority_queue --verify-only
 ```
 

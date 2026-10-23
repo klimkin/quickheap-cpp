@@ -5,6 +5,7 @@
 #include "backend.hpp"
 #include "scalar_trace.hpp"
 #include "diagnostics.hpp"
+#include "profiles.hpp"
 
 #include <charconv>
 #include <iostream>
@@ -14,6 +15,7 @@ namespace {
 using namespace quickheap::bench;
 
 struct Options {
+    BenchmarkProfile profile = BenchmarkProfile::ControlledOperations;
     int min = 10;
     int max = 25;
     int step = 1;
@@ -73,7 +75,8 @@ Options parse(int argc, char **argv) {
             if (++i >= argc) throw std::runtime_error("missing value for " + std::string(flag));
             return argv[i];
         };
-        if (flag == "--min") options.min = number(value(), flag);
+        if (flag == "--profile") options.profile = parse_profile(value());
+        else if (flag == "--min") options.min = number(value(), flag);
         else if (flag == "--fixture") options.fixture = value();
         else if (flag == "--backend") options.backend = value();
         else if (flag == "--verify-only") options.verify_only = true;
@@ -119,6 +122,36 @@ Options parse(int argc, char **argv) {
         else if (flag == "--list") options.list = true;
         else if (flag == "--help" || flag == "-h") options.help = true;
         else throw std::runtime_error("unsupported option: " + std::string(flag));
+    }
+    if (options.profile == BenchmarkProfile::OriginalRust) {
+        if (!options.fixture.empty() || options.verify_only || options.scalar_trace ||
+            options.diagnostics || options.memory || options.comparisons || options.ablation || options.perf)
+            throw std::runtime_error("original-rust supports timing only; fixture and diagnostic modes use controlled-operations");
+        if (options.repeat != 3 || options.warmup != 1)
+            throw std::runtime_error("original-rust requires three repeats and one warmup");
+        if (options.step != 1 && !options.table)
+            throw std::runtime_error("original-rust requires exponent step one, or --table");
+        if (options.min < 1 || options.types[2] || options.types[3])
+            throw std::runtime_error("original-rust requires positive exponents and signed i32/i64 keys");
+        if (options.table && options.types[0])
+            throw std::runtime_error("original-rust table requires i64");
+        if (options.table) options.types = {false, true, false, false};
+        if (options.selected_workloads.empty())
+            options.selected_workloads.assign(original_workloads.begin(), original_workloads.end());
+        for (const auto workload : options.selected_workloads)
+            if (std::find(original_workloads.begin(), original_workloads.end(), workload) == original_workloads.end())
+                throw std::runtime_error("workload is not active in original-rust");
+        if (options.table && options.explicit_workloads &&
+            options.selected_workloads != std::vector{Workload::MonotoneConstantSize})
+            throw std::runtime_error("original-rust table supports MonotoneConstantSize only");
+        if (options.selected_heaps.empty()) {
+            if (options.table) options.selected_heaps = {QueueKind::QuickHeap};
+            else options.selected_heaps.assign(original_heaps.begin(), original_heaps.end());
+        }
+        for (const auto heap : options.selected_heaps)
+            if (std::find(original_heaps.begin(), original_heaps.end(), heap) == original_heaps.end() ||
+                (options.table && heap != QueueKind::QuickHeap))
+                throw std::runtime_error("heap is not an active original-rust registration for this mode");
     }
     if (options.min < 0 || options.max > 25 || options.min > options.max)
         throw std::runtime_error("require 0 <= --min <= --max <= 25");
@@ -177,6 +210,7 @@ Options parse(int argc, char **argv) {
 
 void help() {
     std::cout << "Usage: quickheap_bench [options]\n"
+                 "  --profile NAME           original-rust or controlled-operations (default)\n"
                  "  --min N --max N --step N  powers of two, defaults 10/25/1, max 25\n"
                  "  --repeat N               measured trials, default 3, positive\n"
                  "  --warmup N               fresh unreported trials, default 1, nonnegative\n"
@@ -195,7 +229,8 @@ void help() {
                  "  --scalar-trace           scalar bucket transitions and counts\n"
                  "  --samples I[,I]          scripted pivots in scalar trace\n"
                  "  --diagnostics            untimed fixture memory and counters\n"
-                 "Timing excludes preparation, validation, and destruction.\n"
+                 "Controlled timing excludes preparation, validation, and destruction.\n"
+                 "Original timing includes input and queue destruction; fixed 3 repeats/1 warmup.\n"
                  "CSV ops counts push/pop pairs. Unmeasured counters stay blank.\n"
                  "Radix heap runs monotone workloads only; incompatible defaults are skipped.\n"
                  "Memory capacity counts key slots; kv includes both columns.\n"
@@ -203,6 +238,7 @@ void help() {
 }
 
 void list() {
+    std::cout << "profile,original-rust\nprofile,controlled-operations\n";
     for (const auto &entry : workloads) std::cout << "workload," << entry.name << '\n';
     for (const auto &entry : queue_catalog) std::cout << "heap," << entry.name << '\n';
     for (const auto &entry : ablation_catalog) std::cout << "ablation," << entry.name << '\n';
@@ -214,7 +250,7 @@ void list() {
 
 inline constexpr std::string_view paired_csv_header =
     "elem,heap,n,workload,ops,repeat,nanos,protocol,build,backend,fixture_digest,"
-    "reservation,timer,repeats,warmup,push_comparisons,pop_comparisons";
+    "reservation,timer,repeats,warmup,push_comparisons,pop_comparisons,profile,input_policy,cutoff";
 
 template <typename T> void run_fixture(const Options &options, const Fixture<T> &fixture) {
     const auto shape = fixture_shape(fixture.workload, fixture.n);
@@ -294,6 +330,7 @@ template <typename T> void run_fixture(const Options &options, const Fixture<T> 
                 if (options.comparisons || (diagnostic && diagnostic->counters.push_comparisons)) std::cout << pushes;
                 std::cout << ',';
                 if (options.comparisons || (diagnostic && diagnostic->counters.pop_comparisons)) std::cout << pops;
+                std::cout << ",controlled-operations,shared-fixture,disabled";
                 if (diagnostic) {
                     std::cout << ',';
                     write_diagnostics(std::cout, *diagnostic);
@@ -333,7 +370,65 @@ void run_case(const Options &options, const Plan<T> &plan, std::string_view heap
     }
 }
 
+template <typename T> void run_original_type(const Options &options) {
+    std::random_device entropy;
+    std::mt19937_64 rng(entropy());
+    for (const auto kind : original_heaps) {
+        if (std::find(options.selected_heaps.begin(), options.selected_heaps.end(), kind) ==
+            options.selected_heaps.end()) continue;
+        const auto heap = *std::find_if(queue_catalog.begin(), queue_catalog.end(),
+                                       [&](const auto &entry) { return entry.kind == kind; });
+        std::array<bool, original_workloads.size()> active;
+        active.fill(true);
+        visit_queue<T, false>(kind, [&]<typename Q>() {
+            for (int exponent = options.min; exponent <= options.max; exponent += options.step) {
+                const auto n = std::size_t{1} << exponent;
+                const auto factory = [&] { return make_original_queue<Q>(n + 50); };
+                for (std::size_t index = 0; index < original_workloads.size(); ++index) {
+                    const auto workload = original_workloads[index];
+                    if (!active[index] ||
+                        std::find(options.selected_workloads.begin(), options.selected_workloads.end(), workload) ==
+                            options.selected_workloads.end() ||
+                        (heap.monotone && !monotone_workload(workload))) continue;
+                    {
+                        const auto validation = generate_original_fixture<T>(workload, n, rng);
+                        validate_fixture(validation, factory);
+                    }
+                    const auto ops = fixture_shape(workload, n).timed_count;
+                    std::array<std::int64_t, 3> elapsed{};
+                    for (std::size_t trial = 0; trial < 4; ++trial) {
+                        auto input = generate_original_fixture<T>(workload, n, rng);
+                        const auto digest = input.digest;
+                        const auto duration = original_trial(std::move(input), factory,
+                            [] { return std::chrono::steady_clock::now(); });
+                        if (trial == 0) continue;
+                        const auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count();
+                        elapsed[trial - 1] = nanos;
+                        std::cout << key_name<T>() << ',' << heap.name << ',' << n << ','
+                                  << fixture_workload_name(workload) << ',' << ops << ',' << trial - 1
+                                  << ',' << nanos << ',' << original_protocol << ',';
+                        csv_field(std::cout, std::string(build_description) + "/" + build_options +
+                                  "/input-generator=std-mt19937_64/source=" + source_digest +
+                                  "/dependencies=" + dependency_digest);
+                        std::cout << ',' << (kind == QueueKind::QuickHeap ? simd_backend() : "scalar")
+                                  << ',' << digest << ',' << original_reservation(kind)
+                                  << ",workload-input-queue-destruction,3,1,,,original-rust,fresh-random-original,"
+                                  << (options.table ? 128 : 32) << '\n';
+                        flush_csv(std::cout);
+                    }
+                    std::sort(elapsed.begin(), elapsed.end());
+                    active[index] = !original_cutoff_exceeded(elapsed[1], n, ops, options.table);
+                }
+            }
+        });
+    }
+}
+
 template <typename T> void run_type(const Options &options) {
+    if (options.profile == BenchmarkProfile::OriginalRust) {
+        run_original_type<T>(options);
+        return;
+    }
     for (const auto &workload : workloads) {
         if (std::find(options.selected_workloads.begin(), options.selected_workloads.end(),
                       workload.workload) == options.selected_workloads.end()) continue;

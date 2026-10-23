@@ -5,7 +5,7 @@
     "cpp_baseline": "299fb0b5722fbcd40bed3f7584b8af71ae241c15",
     "rust_baseline": "a9f2518d9ed452130361cfe1681c68625a68ab35"
   },
-  "result_identity": "Protocol differs from historical Rust results; compare only attributed shared-fixture runs.",
+  "result_identity": "Compare results within one profile. Controlled runs share fixture bytes. Original-compatible runs share workload distributions and lifecycle, with independent random inputs.",
   "active_workloads": [
     "HeapSort",
     "MonotoneConstantSize",
@@ -183,5 +183,57 @@
     "prim": "minimum undirected edges; source component",
     "queue_order": "packed key then ID",
     "historical": "Rust directed Prim is distinct"
+  },
+  "default_profile": "controlled-operations",
+  "profiles": {
+    "controlled-operations": {
+      "protocol": "quickheap-cpp-v1",
+      "owner": "C++ benchmark",
+      "inputs": "shared-fixture",
+      "timer": "workload-only-raii",
+      "reservation": "backend-default; required fixed capacities disclosed",
+      "repeats": 3,
+      "warmup": 1,
+      "cutoff": "disabled",
+      "comparison": "Identical fixture bytes and selected workload operations; implementation equivalence remains catalog-specific"
+    },
+    "original-rust": {
+      "protocol": "quickheap-original-rust-a9f2518-v1",
+      "reference_revision": "a9f2518d9ed452130361cfe1681c68625a68ab35",
+      "owner": "Pinned original Rust benchmark",
+      "inputs": "fresh-random-original",
+      "generator": {
+        "rust": "Unmodified fastrand::Rng::new() for each trial",
+        "cpp": "Fresh inputs drawn from C++ mt19937_64 stream seeded per element-type sweep; same distributions, independent sequences"
+      },
+      "shared_inputs": false,
+      "rust_fixture_digest": "unavailable; original runner exports neither inputs nor seed",
+      "timer": "workload-input-queue-destruction",
+      "reservation": {
+        "BinaryHeap": "reserve:1048576",
+        "OriginalQuickHeap": "reserve:268435456",
+        "other": "backend-default"
+      },
+      "repeats": 3,
+      "warmup": 1,
+      "schedule": "Element type, upstream heap order, size, active workload order",
+      "min_exponent": 10,
+      "max_exponent": 25,
+      "exponent_step": 1,
+      "cutoff": {
+        "plot": 32,
+        "table": 128,
+        "units": "ns/(ops log2 n)",
+        "rule": "Median above cutoff disables larger sizes for that heap/workload"
+      },
+      "table": {
+        "elem": "i64",
+        "workload": "MonotoneConstantSize",
+        "exponent_step": 5,
+        "registrations": "Production and development SIMD only; original runner returns before other registrations"
+      },
+      "comparison": "Workload distribution, reservation, lifecycle, and schedule compatibility; identical inputs and algorithm parity are not implied",
+      "known_execution_gap": "Unchanged original development crate fails E0133 at quickheap-dev/src/lib.rs:331 on current nightly"
+    }
   }
 }

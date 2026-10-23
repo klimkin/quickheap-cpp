@@ -119,4 +119,4 @@ TEMPLATE_TEST_CASE("Original generated inputs match domains and validate outside
     }
 }
 
-} // namespace
+}
