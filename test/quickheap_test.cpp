@@ -35,6 +35,40 @@ namespace {
 
 enum class Pattern { Random, Increasing, Decreasing, MostlyMax, MostlyMin };
 
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SmallTerminalsRetainDuplicatesAndExtrema", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    using T = TestType;
+    const std::array<T, 5> keys{std::numeric_limits<T>::lowest(), std::numeric_limits<T>::max(),
+                              T{0}, T{1}, T{1}};
+    for (std::size_t count = 0; count <= 17; ++count) {
+        quickheap::Heap<T> heap;
+        quickheap::KvSimdQuickHeap<T> kv;
+        std::vector<T> input;
+        for (std::size_t index = 0; index < count; ++index) {
+            const T key = keys[(index * 3) % keys.size()];
+            input.push_back(key);
+            heap.push(key);
+            kv.push(key, static_cast<T>(index));
+        }
+        auto expected = input;
+        std::sort(expected.begin(), expected.end());
+        std::vector<bool> seen(count);
+        for (T key : expected) {
+            CHECK(heap.try_pop() == key);
+            const auto row = kv.try_pop();
+            REQUIRE(row);
+            REQUIRE(row->first == key);
+            const auto index = static_cast<std::size_t>(row->second);
+            REQUIRE(index < count);
+            CHECK_FALSE(seen[index]);
+            CHECK(input[index] == row->first);
+            seen[index] = true;
+        }
+        CHECK_FALSE(heap.try_pop());
+        CHECK_FALSE(kv.try_pop());
+    }
+}
+
 template <typename T> T from_bits(std::make_unsigned_t<T> bits) {
     if constexpr (std::is_signed_v<T>) {
         return std::bit_cast<T>(bits);

@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <new>
 #include <type_traits>
@@ -15,6 +16,8 @@
 #include <vector>
 
 namespace quickheap::detail {
+
+inline constexpr std::size_t terminal_limit = 16;
 
 template <class T>
 class DefaultInitAllocator {
@@ -132,7 +135,23 @@ class Bucket {
 
     void sort_descending() noexcept {
         if constexpr (Columns == 1) {
-            std::sort(columns_[0].begin(), columns_[0].end(), std::greater<T>{});
+            if (size() <= 1) return;
+            std::array<T, terminal_limit> sorted;
+            sorted.fill(std::numeric_limits<T>::lowest());
+            std::copy(columns_[0].begin(), columns_[0].end(), sorted.begin());
+            for (std::size_t width = 2; width <= terminal_limit; width *= 2) {
+                for (std::size_t distance = width / 2; distance != 0; distance /= 2) {
+                    for (std::size_t index = 0; index < terminal_limit; ++index) {
+                        const auto partner = index ^ distance;
+                        if (partner <= index) continue;
+                        const auto high = std::max(sorted[index], sorted[partner]);
+                        const auto low = std::min(sorted[index], sorted[partner]);
+                        sorted[index] = (index & width) == 0 ? high : low;
+                        sorted[partner] = (index & width) == 0 ? low : high;
+                    }
+                }
+            }
+            std::copy_n(sorted.begin(), size(), columns_[0].begin());
         } else {
             for (std::size_t index = 1; index < size(); ++index) {
                 const auto value = row(index);
@@ -235,7 +254,6 @@ public:
     }
 
 private:
-    static constexpr std::size_t terminal_limit = 16;
     std::vector<T> pivots_;
     std::vector<Bucket<T, Columns>> buckets_;
     std::size_t size_ = 0;
