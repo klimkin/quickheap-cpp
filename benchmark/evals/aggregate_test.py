@@ -45,7 +45,7 @@ class AggregateContract(unittest.TestCase):
         self.assertEqual({r["processes"] for r in rows}, {"3"})
         self.assertEqual({r["complete"] for r in rows}, {"True"})
         for name in ("paper.md", "report.tex", "nanos.svg", "nanos.pdf", "manifest.json",
-                     "provenance/historical.json", "provenance/catalog.csv"):
+                     "provenance/historical.json", "provenance/catalog.csv", "provenance/aggregate.py"):
             self.assertTrue((self.root / "aggregate" / name).is_file())
 
     def test_missing_process_or_language_rejected(self):

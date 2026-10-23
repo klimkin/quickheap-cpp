@@ -120,13 +120,18 @@ def aggregate(reports, output):
         raw = (reports[0] / "provenance" / name).read_bytes()
         (output / "provenance" / name).write_bytes(raw)
         provenance.append({"path": f"provenance/{name}", "sha256": digest(raw)})
+    raw = Path(__file__).read_bytes()
+    (output / "provenance/aggregate.py").write_bytes(raw)
+    provenance.append({"path": "provenance/aggregate.py", "sha256": digest(raw)})
     historical = json.loads((output / "provenance/historical.json").read_text())
     report.write_reports(summaries, output, historical)
     (output / "summary.csv").rename(output / "complete-groups.csv")
     (output / "process-summary.csv").rename(output / "summary.csv")
     paper = output / "paper.md"
     paper.write_text("# Independent process comparison\n\nStatistics are medians and ranges of process medians. Only complete groups appear below. "
-                     "See summary.csv for observed and expected process counts, including cutoff omissions.\n\n" + paper.read_text())
+                     "See summary.csv for observed and expected process counts, including cutoff omissions.\n\n" +
+                     paper.read_text().replace("Median and range describe supplied repeats.",
+                                               "Median and range describe independently measured process medians."))
     import plot
     for metric in sorted({summary.metric for summary in summaries}):
         plotted = [plot.Summary(plot.Sample("synthetic", summary.identity.elem,
