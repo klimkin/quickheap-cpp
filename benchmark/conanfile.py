@@ -67,11 +67,10 @@ class QuickHeapBenchmarkConan(ConanFile):
 
     def generate(self):
         toolchain = CMakeToolchain(self)
-        if os.environ.get("BENCH_CPU"):
-            import sys
-            sys.path.insert(0, self.source_folder)
-            from cpu import select_cpu
-            toolchain.cache_variables["QUICKHEAP_BENCH_CPU"] = select_cpu(os.environ["BENCH_CPU"])["cpu"]
+        import sys
+        sys.path.insert(0, self.source_folder)
+        from cpu import select_cpu
+        toolchain.cache_variables["QUICKHEAP_BENCH_CPU"] = select_cpu(os.environ.get("BENCH_CPU", "auto"))["cpu"]
         toolchain.cache_variables["QUICKHEAP_SCALAR"] = bool(
             self.dependencies["quickheap"].options.scalar
         )

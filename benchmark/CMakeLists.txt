@@ -4,7 +4,24 @@ project(quickheap_bench LANGUAGES CXX)
 include(GNUInstallDirs)
 include(CTest)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-if(DEFINED QUICKHEAP_BENCH_CPU)
+if(BUILD_TESTING)
+    find_package(Python3 COMPONENTS Interpreter REQUIRED)
+    if(NOT DEFINED QUICKHEAP_BENCH_CPU)
+        if(DEFINED ENV{BENCH_CPU})
+            set(QUICKHEAP_BENCH_CPU "$ENV{BENCH_CPU}")
+        else()
+            set(QUICKHEAP_BENCH_CPU "auto")
+        endif()
+    endif()
+    execute_process(
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/cpu.py --select "${QUICKHEAP_BENCH_CPU}"
+        OUTPUT_VARIABLE selected_cpu OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_VARIABLE cpu_error RESULT_VARIABLE cpu_result
+    )
+    if(NOT cpu_result EQUAL 0)
+        message(FATAL_ERROR "Benchmark tests require a verified P core: ${cpu_error}")
+    endif()
+    set(QUICKHEAP_BENCH_CPU "${selected_cpu}")
     set(CMAKE_TEST_LAUNCHER "taskset;-c;${QUICKHEAP_BENCH_CPU}")
 endif()
 
