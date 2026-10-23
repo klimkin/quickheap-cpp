@@ -207,6 +207,6 @@ install(DIRECTORY evals/ DESTINATION ${CMAKE_INSTALL_DATADIR}/quickheap-bench/ev
 install(FILES README.md DESTINATION ${CMAKE_INSTALL_DATADIR}/quickheap-bench)
 install(FILES protocol.json catalog.csv DESTINATION ${CMAKE_INSTALL_DATADIR}/quickheap-bench)
 install(FILES PROTOCOL.md COVERAGE.md verification.md DESTINATION ${CMAKE_INSTALL_DATADIR}/quickheap-bench)
-install(PROGRAMS cpu.py verify.py verify_pair.py verify_scalar.py verify_graph.py DESTINATION ${CMAKE_INSTALL_DATADIR}/quickheap-bench)
+install(PROGRAMS cpu.py measure_parity.py verify.py verify_pair.py verify_scalar.py verify_graph.py DESTINATION ${CMAKE_INSTALL_DATADIR}/quickheap-bench)
 install(DIRECTORY fixtures/ DESTINATION ${CMAKE_INSTALL_DATADIR}/quickheap-bench/fixtures
     FILES_MATCHING PATTERN "*.qhf")
