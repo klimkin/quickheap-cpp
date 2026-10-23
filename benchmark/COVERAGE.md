@@ -7,7 +7,7 @@ Two profiles select workload policy independently of implementation identity.
 `controlled-operations` uses shared fixtures and C++ timer boundaries.
 C++ original defaults omit development SIMD configurations still marked gaps.
 Paired scalar and Orx substitutes retain their existing implementation names and catalog status.
-Original Rust source remains unchanged; current nightly compile error and missing initialized FFI dependencies can block execution.
+Unrepaired original Rust source fails on current nightly. An explicitly attributed bounded-load repair enables execution; missing initialized FFI dependencies can still block optional configurations.
 
 ## Active catalog
 
@@ -43,7 +43,7 @@ Rust table registrations after unconditional return are dormant. Active table co
 | Attributed variant plots, LaTeX and paper reports | Implemented; historical figure layouts remain tracked gap |
 | Historical results archive | Six verified source files archived; original measurement build provenance unknown |
 | Graph algorithm lifetime and overflow differences | Retain distinct C++ identity |
-| Rust development SIMD unsafe-call compilation | Tracked upstream defect; no unsafe assertion without initialized padding proof |
+| Rust development SIMD unsafe-call compilation | Unrepaired reference defect; declared bounded-load repair enables original-profile execution |
 
 ## Verification
 

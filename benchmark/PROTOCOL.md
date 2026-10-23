@@ -27,7 +27,7 @@ Traversal follows element type, upstream heap registration order, size, then act
 
 C++ heap and workload filters select attributed subsets of active registrations. Original Rust launcher accepts original size, width, table, and build-feature controls. It rejects controlled fixture and trial controls. Compatibility timing excludes historical diagnostics modes, which retain their existing entrypoints.
 
-Existing unsafe SIMD call at `quickheap-dev/src/lib.rs:331` prevents original Rust runner from compiling on current nightly. Launcher returns that build failure. It never substitutes controlled runner. Fixing original implementation requires a separately attributed upstream change.
+Unrepaired reference source contains an unsafe SIMD call that fails on current nightly. Launcher returns that build failure. A declared bounded-load repair permits original-profile execution and retains its repair revision alongside the reference revision. Results from that source describe the repaired reference. Launcher never substitutes the controlled runner.
 
 ## Controlled operations
 
@@ -102,7 +102,7 @@ Each gate must pass before dependent implementation starts. Matrix availability 
 
 ## Known upstream defect
 
-Rust development SIMD build at pinned source calls unsafe `push_position` through safe caller without an unsafe block. Helper requires initialized padding beyond live pivot slice. Compiler rejects call, and adding unsafe block alone cannot prove padding. Paired fixture tools therefore compile independently of development crate. Development SIMD coverage remains a tracked gap until bounded loads or valid initialized padding establish safety.
+Unrepaired Rust source calls unsafe `push_position` through a safe caller and requires initialized padding beyond the live pivot slice. Compiler rejects the call; adding an unsafe block alone cannot prove padding. The declared repair uses bounded loads and enables the original runner. Paired fixture tools compile independently of the development crate. C++ development SIMD variants still retain substitute status until their algorithm parameters match upstream.
 
 ## Scalar count semantics
 
