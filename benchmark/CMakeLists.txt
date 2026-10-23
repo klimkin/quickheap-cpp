@@ -146,6 +146,8 @@ if(BUILD_TESTING)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/evals/aggregate_test.py)
     add_test(NAME quickheap_cpu_contract
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/cpu_test.py)
+    add_test(NAME quickheap_parity_measurement_contract
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/measure_parity_test.py)
     add_test(NAME quickheap_report_contract
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/evals/report_test.py)
     add_test(NAME quickheap_fixture_inspect
