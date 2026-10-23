@@ -7,13 +7,53 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <optional>
+#include <functional>
+#include <memory>
+#include <new>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace quickheap::detail {
 
 template <class T>
-void reserve_geometrically(std::vector<T>& values, std::size_t required) {
+class DefaultInitAllocator {
+public:
+    using value_type = T;
+    using is_always_equal = std::true_type;
+
+    DefaultInitAllocator() noexcept = default;
+
+    template <class U>
+    DefaultInitAllocator(const DefaultInitAllocator<U>&) noexcept {}
+
+    T* allocate(std::size_t count) {
+        return std::allocator<T>{}.allocate(count);
+    }
+
+    void deallocate(T* storage, std::size_t count) noexcept {
+        std::allocator<T>{}.deallocate(storage, count);
+    }
+
+    template <class U>
+    void construct(U* object) noexcept(std::is_nothrow_default_constructible_v<U>) {
+        ::new (static_cast<void*>(object)) U;
+    }
+
+    template <class U, class... Args>
+        requires(sizeof...(Args) != 0)
+    void construct(U* object, Args&&... args) {
+        std::construct_at(object, std::forward<Args>(args)...);
+    }
+
+    template <class U>
+    bool operator==(const DefaultInitAllocator<U>&) const noexcept {
+        return true;
+    }
+};
+
+template <class T, class Allocator>
+void reserve_geometrically(std::vector<T, Allocator>& values, std::size_t required) {
     if (required <= values.capacity()) {
         return;
     }
@@ -29,11 +69,12 @@ class BucketHeap;
 
 template <class T, std::size_t Columns>
 class Bucket {
+    static_assert(std::is_integral_v<T> && (sizeof(T) == 4 || sizeof(T) == 8));
     static_assert(Columns == 1 || Columns == 2);
     friend class BucketHeap<T, Columns>;
     using Row = std::array<T, Columns>;
 
-    std::array<std::vector<T>, Columns> columns_;
+    std::array<std::vector<T, DefaultInitAllocator<T>>, Columns> columns_;
 
     std::size_t size() const noexcept { return columns_[0].size(); }
 
@@ -90,14 +131,18 @@ class Bucket {
     }
 
     void sort_descending() noexcept {
-        for (std::size_t index = 1; index < size(); ++index) {
-            const auto value = row(index);
-            auto position = index;
-            while (position != 0 && columns_[0][position - 1] < value[0]) {
-                set_row(position, row(position - 1));
-                --position;
+        if constexpr (Columns == 1) {
+            std::sort(columns_[0].begin(), columns_[0].end(), std::greater<T>{});
+        } else {
+            for (std::size_t index = 1; index < size(); ++index) {
+                const auto value = row(index);
+                auto position = index;
+                while (position != 0 && columns_[0][position - 1] < value[0]) {
+                    set_row(position, row(position - 1));
+                    --position;
+                }
+                set_row(position, value);
             }
-            set_row(position, value);
         }
     }
 
@@ -115,6 +160,21 @@ class Bucket {
         } else {
             return nullptr;
         }
+    }
+
+    void split_into(Bucket& lower, T pivot, std::size_t salt) {
+        const auto count = size();
+        assert(lower.size() == 0);
+        lower.reserve_rows(count);
+        lower.resize_prepared(count);
+
+        const auto split = partition(columns_[0].data(), values(),
+                                     lower.columns_[0].data(), lower.values(),
+                                     count, pivot, salt);
+        assert(split.upper != 0 && split.lower != 0);
+        assert(split.upper + split.lower == count);
+        resize_prepared(split.upper);
+        lower.resize_prepared(split.lower);
     }
 };
 
@@ -137,9 +197,9 @@ public:
         ++size_;
     }
 
-    std::optional<Row> pop() {
+    bool pop_into(Row& output) {
         if (size_ == 0) {
-            return std::nullopt;
+            return false;
         }
         if (buckets_[pivots_.size()].size() > terminal_limit) {
             do {
@@ -159,7 +219,8 @@ public:
             }
         }
         --size_;
-        return result;
+        output = result;
+        return true;
     }
 
     std::size_t size() const noexcept { return size_; }
@@ -207,20 +268,9 @@ private:
 
         auto& current = buckets_[index];
         auto& lower = buckets_[index + 1];
-        const auto count = current.size();
-        assert(count > terminal_limit);
-        assert(lower.size() == 0);
-        lower.reserve_rows(count);
-        lower.resize_prepared(count);
-
+        assert(current.size() > terminal_limit);
         const auto pivot = sample_pivot(current);
-        const auto split = partition(current.columns_[0].data(), current.values(),
-                                     lower.columns_[0].data(), lower.values(), count,
-                                     pivot, static_cast<std::size_t>(random()));
-        assert(split.upper != 0 && split.lower != 0);
-        assert(split.upper + split.lower == count);
-        current.resize_prepared(split.upper);
-        lower.resize_prepared(split.lower);
+        current.split_into(lower, pivot, static_cast<std::size_t>(random()));
         pivots_.push_back(pivot);
     }
 };

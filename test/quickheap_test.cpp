@@ -303,6 +303,38 @@ TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleMostlyMinKeyValues", "[quickheap]",
     wiggle_workload<TestType, true, Pattern::MostlyMin>();
 }
 
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.KeyValueReusePreservesAssociations", "[quickheap]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    using T = TestType;
+    Queue<T, true> heap;
+    Generator<T, Pattern::Random> generator;
+    std::size_t retained_capacity = 0;
+    for (const std::size_t count : {17U, 257U, 33U, 4097U, 8193U, 17U,
+                                   16385U, 1025U, 16385U}) {
+        std::vector<T> expected;
+        expected.reserve(count);
+        for (std::size_t index = 0; index < count; ++index) {
+            const auto key = index % 4 == 0 ? std::numeric_limits<T>::min()
+                           : index % 4 == 1 ? std::numeric_limits<T>::max()
+                                            : generator.next();
+            heap.push(key);
+            expected.push_back(key);
+        }
+        CHECK(heap.size() == count);
+        CHECK(heap.capacity() >= retained_capacity);
+        retained_capacity = heap.capacity();
+        std::sort(expected.begin(), expected.end());
+        for (const auto key : expected) {
+            REQUIRE(heap.pop() == std::optional<T>(key));
+        }
+        CHECK(heap.empty());
+        CHECK(heap.size() == 0U);
+        CHECK(heap.pop() == std::nullopt);
+        CHECK(heap.capacity() >= retained_capacity);
+        retained_capacity = heap.capacity();
+    }
+}
+
 TEMPLATE_TEST_CASE("QuickHeapTypedTest.KeyWrapperMovesAndRetainsCapacity", "[quickheap]",
                    std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
     using T = TestType;
