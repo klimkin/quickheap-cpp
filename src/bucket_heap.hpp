@@ -207,7 +207,12 @@ public:
     void push(Row value) {
         const auto index = push_position(pivots_.data(), pivots_.size(), value[0]);
         auto& bucket = buckets_[index];
-        bucket.reserve_rows(bucket.size() + 1);
+        for (const auto& column : bucket.columns_) {
+            if (bucket.size() == column.capacity()) {
+                bucket.reserve_rows(bucket.size() + 1);
+                break;
+            }
+        }
         if (index == pivots_.size() && bucket.size() < terminal_limit) {
             bucket.insert_descending_prepared(value);
         } else {
