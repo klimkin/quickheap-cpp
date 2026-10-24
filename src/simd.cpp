@@ -63,16 +63,15 @@ SplitResult Partition(T* keys, T* values, T* lower_keys, T* lower_values,
         const auto even = lanes % 2 == 0 ? even_start :
             hn::Eq(hn::And(hn::Iota(d, static_cast<T>((i ^ salt) & 1)), one), hn::Zero(d));
         const auto small = hn::Or(hn::Lt(key, threshold), hn::And(hn::Eq(key, threshold), even));
-        const auto large = hn::Not(small);
         // Both cursors are <= i, so full-register stores stay inside count slots.
         const auto low_count = hn::CompressStore(key, small, d, lower_keys + lower);
-        const auto high_count = hn::CompressStore(key, large, d, keys + upper);
+        hn::StoreU(hn::CompressNot(key, small), d, keys + upper);
         if constexpr (Paired) {
             hn::CompressStore(value, small, d, lower_values + lower);
-            hn::CompressStore(value, large, d, values + upper);
+            hn::StoreU(hn::CompressNot(value, small), d, values + upper);
         }
         lower += low_count;
-        upper += high_count;
+        upper += lanes - low_count;
     }
     for (; i < count; ++i) {
         const T key = keys[i];
