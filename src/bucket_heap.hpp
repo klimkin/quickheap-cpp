@@ -134,8 +134,7 @@ class Bucket {
     }
 
     void sort_descending() noexcept {
-        if constexpr (Columns == 1) {
-            if (size() <= 1) return;
+        if (Columns == 1 && size() > 8) {
             std::array<T, terminal_limit> sorted;
             sorted.fill(std::numeric_limits<T>::lowest());
             std::copy(columns_[0].begin(), columns_[0].end(), sorted.begin());
