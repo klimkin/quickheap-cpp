@@ -244,7 +244,12 @@ private:
         const auto count = upper.size();
         const auto pivot_index = select_pivot(upper);
         const auto pivot = upper[pivot_index];
-        if constexpr (Perfect) {
+        if constexpr (Perfect && !Count) {
+            // Counting builds retain the literal split for the Rust comparison oracle.
+            const auto middle = upper.begin() + pivot_index + 1;
+            lower.assign(upper.begin(), middle);
+            upper.erase(upper.begin(), middle);
+        } else if constexpr (Perfect) {
             // Sorted keys make the split branch predictable.
             lower.clear();
             lower.reserve(count);

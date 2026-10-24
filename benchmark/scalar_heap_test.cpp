@@ -10,6 +10,7 @@
 #include <limits>
 #include <queue>
 #include <random>
+#include <tuple>
 #include <vector>
 
 namespace quickheap::bench {
@@ -213,6 +214,53 @@ TEST_CASE("perfect pivot oracle excludes selection comparisons", "[scalar-contra
     CHECK(heap.pop_comparisons() == 6);
     CHECK(heap.counters().samples == 0);
     CHECK(heap.counters().retries == 0);
+}
+
+template <class T, bool Linear>
+void check_perfect_split_trace() {
+    ScalarHeap<T, 1, true, Linear, true> counted;
+    ScalarHeap<T, 1, true, Linear, false> uncounted;
+    std::mt19937_64 random(42);
+    using Event = std::tuple<T, std::size_t, bool, std::vector<T>, std::vector<T>>;
+    const auto push = [&](T key) {
+        counted.push(key);
+        uncounted.push(key);
+    };
+    const auto pop = [&] {
+        std::vector<Event> expected;
+        std::vector<Event> actual;
+        const auto capture = [](auto& events) {
+            return [&](const auto& event) {
+                events.emplace_back(event.pivot, event.pivot_index, event.retry,
+                    std::vector<T>(event.upper.begin(), event.upper.end()),
+                    std::vector<T>(event.lower.begin(), event.lower.end()));
+            };
+        };
+        REQUIRE(uncounted.try_pop(capture(actual)) == counted.try_pop(capture(expected)));
+        REQUIRE(actual == expected);
+        REQUIRE(uncounted.valid());
+        REQUIRE(uncounted.size() == counted.size());
+        REQUIRE(std::equal(uncounted.pivots().begin(), uncounted.pivots().end(),
+                           counted.pivots().begin(), counted.pivots().end()));
+        REQUIRE(std::equal(uncounted.buckets().begin(), uncounted.buckets().end(),
+                           counted.buckets().begin(), counted.buckets().end()));
+    };
+    for (std::size_t i = 0; i < 256; ++i) {
+        push(i % 3 == 0 ? std::numeric_limits<T>::min()
+            : i % 3 == 1 ? std::numeric_limits<T>::max() : T{});
+    }
+    for (std::size_t i = 0; i < 1024; ++i) {
+        pop();
+        push(i % 5 == 0 ? T{} : scalar_key_bits<T>(random()));
+    }
+    while (!counted.empty()) pop();
+    CHECK(uncounted.counters().comparisons() == 0);
+}
+
+TEMPLATE_TEST_CASE("uncounted perfect splits match the counted oracle", "[scalar-contract]",
+                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+    check_perfect_split_trace<TestType, false>();
+    check_perfect_split_trace<TestType, true>();
 }
 
 template <bool Linear>
