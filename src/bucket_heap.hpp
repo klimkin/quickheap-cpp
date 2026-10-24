@@ -2,6 +2,8 @@
 
 #include "simd.hpp"
 
+#include "hwy/base.h"
+
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -133,7 +135,7 @@ class Bucket {
         set_row(position, value);
     }
 
-    void sort_descending() noexcept {
+    HWY_NOINLINE void sort_descending() noexcept {
         if (Columns == 1 && size() > 8) {
             std::array<T, terminal_limit> sorted;
             sorted.fill(std::numeric_limits<T>::lowest());
@@ -283,7 +285,7 @@ private:
         return std::max(first, std::min(second, third));
     }
 
-    void split_terminal() {
+    HWY_NOINLINE void split_terminal() {
         const auto index = pivots_.size();
         reserve_geometrically(pivots_, index + 1);
         if (index + 1 == buckets_.size()) {
