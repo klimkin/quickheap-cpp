@@ -179,21 +179,34 @@ template <typename T, bool CountComparisons = false> class WeakHeap {
     std::optional<T> try_pop() {
         if (elements_.empty()) return std::nullopt;
         T result = std::move(elements_.front());
-        if (elements_.size() > 1) elements_.front() = std::move(elements_.back());
+        if (elements_.size() == 1) {
+            elements_.pop_back();
+            reverse_.pop_back();
+            return result;
+        }
+        T root = std::move(elements_.back());
         elements_.pop_back();
         reverse_.pop_back();
-        if (elements_.size() > 1) {
+        auto *const data = elements_.data();
+        auto *const reverse = reverse_.data();
+        const auto size = elements_.size();
+        if (size > 1) {
             auto pos = std::size_t{1};
-            while (pos <= (elements_.size() - 1) / 2) {
-                const auto child = 2 * pos + static_cast<std::size_t>(reverse_[pos]);
-                if (child >= elements_.size()) break;
+            while (pos <= (size - 1) / 2) {
+                const auto child = 2 * pos + static_cast<std::size_t>(reverse[pos]);
+                if (child >= size) break;
                 pos = child;
             }
             while (pos != 0) {
-                join(0, pos, stats_.pops);
+                if constexpr (CountComparisons) ++stats_.pops;
+                if (std::less<T>{}(data[pos], root)) {
+                    std::swap(root, data[pos]);
+                    reverse[pos] ^= 1;
+                }
                 pos /= 2;
             }
         }
+        data[0] = std::move(root);
         return result;
     }
 
@@ -217,14 +230,6 @@ template <typename T, bool CountComparisons = false> class WeakHeap {
             pos /= 2;
         return pos / 2;
     }
-    bool join(std::size_t ancestor, std::size_t pos, std::uint64_t &counter) {
-        if constexpr (CountComparisons) ++counter;
-        if (!std::less<T>{}(elements_[pos], elements_[ancestor])) return false;
-        std::swap(elements_[pos], elements_[ancestor]);
-        reverse_[pos] ^= 1;
-        return true;
-    }
-
     std::vector<T> elements_;
     std::vector<std::uint8_t> reverse_;
     ComparisonStats stats_;

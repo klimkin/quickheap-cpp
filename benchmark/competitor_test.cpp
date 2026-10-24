@@ -135,6 +135,51 @@ TEST_CASE("Competitor comparison counts separate push and pop", "[competitors]")
     check_counts<WeakHeap<int, true>>();
 }
 
+struct ComparisonKey {
+    int value;
+    std::uint64_t *comparisons;
+
+    friend bool operator<(const ComparisonKey &left, const ComparisonKey &right) {
+        ++*left.comparisons;
+        return left.value < right.value;
+    }
+};
+
+template <bool Count> void check_weak_comparisons() {
+    WeakHeap<ComparisonKey, Count> heap;
+    std::priority_queue<int, std::vector<int>, std::greater<int>> reference;
+    std::uint64_t comparisons = 0;
+    std::mt19937_64 rng(42);
+    for (std::size_t i = 0; i < 4000 || !reference.empty(); ++i) {
+        const auto before = comparisons;
+        const auto pushes = heap.push_comparisons();
+        const auto pops = heap.pop_comparisons();
+        if (i < 4000 && (reference.empty() || rng() % 5 < 3)) {
+            const auto key = static_cast<int>(rng() % 17);
+            heap.push({key, &comparisons});
+            reference.push(key);
+            CHECK(heap.pop_comparisons() == pops);
+            CHECK(heap.push_comparisons() == pushes + (Count ? comparisons - before : 0));
+        } else {
+            const auto result = heap.try_pop();
+            REQUIRE(result.has_value());
+            REQUIRE(result->value == reference.top());
+            reference.pop();
+            CHECK(heap.push_comparisons() == pushes);
+            CHECK(heap.pop_comparisons() == pops + (Count ? comparisons - before : 0));
+        }
+    }
+    CHECK_FALSE(heap.try_pop().has_value());
+    heap.reset_comparisons();
+    CHECK(heap.push_comparisons() == 0);
+    CHECK(heap.pop_comparisons() == 0);
+}
+
+TEST_CASE("Weak heap counts every key comparison", "[competitors]") {
+    check_weak_comparisons<false>();
+    check_weak_comparisons<true>();
+}
+
 #ifdef QUICKHEAP_BENCH_BOOST
 TEMPLATE_TEST_CASE("Boost competitors preserve mixed operations and duplicates", "[competitors][boost]",
                    std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
