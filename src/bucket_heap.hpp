@@ -204,7 +204,9 @@ public:
     BucketHeap() : buckets_(128) { pivots_.reserve(128); }
 
     void push(Row value) {
-        const auto index = push_position(pivots_.data(), pivots_.size(), value[0]);
+        const auto index = pivots_.empty() || pivots_.back() > value[0]
+                               ? pivots_.size()
+                               : push_position(pivots_.data(), pivots_.size(), value[0]);
         auto& bucket = buckets_[index];
         for (const auto& column : bucket.columns_) {
             if (bucket.size() == column.capacity()) {
