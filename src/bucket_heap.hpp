@@ -274,11 +274,17 @@ private:
         return value ^ (value >> 31);
     }
 
+    std::size_t random_index(std::size_t count) noexcept {
+        std::uint64_t index;
+        hwy::Mul128(random(), static_cast<std::uint64_t>(count), &index);
+        return static_cast<std::size_t>(index);
+    }
+
     T sample_pivot(const Bucket<T, Columns>& bucket) noexcept {
         const auto& keys = bucket.columns_[0];
-        auto first = keys[static_cast<std::size_t>(random() % keys.size())];
-        auto second = keys[static_cast<std::size_t>(random() % keys.size())];
-        const auto third = keys[static_cast<std::size_t>(random() % keys.size())];
+        auto first = keys[random_index(keys.size())];
+        auto second = keys[random_index(keys.size())];
+        const auto third = keys[random_index(keys.size())];
         if (first > second) {
             std::swap(first, second);
         }
