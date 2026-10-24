@@ -220,11 +220,13 @@ template <class T, bool Linear>
 void check_perfect_split_trace() {
     ScalarHeap<T, 1, true, Linear, true> counted;
     ScalarHeap<T, 1, true, Linear, false> uncounted;
+    ScalarHeap<T, 1, true, Linear, false> unobserved;
     std::mt19937_64 random(42);
     using Event = std::tuple<T, std::size_t, bool, std::vector<T>, std::vector<T>>;
     const auto push = [&](T key) {
         counted.push(key);
         uncounted.push(key);
+        unobserved.push(key);
     };
     const auto pop = [&] {
         std::vector<Event> expected;
@@ -236,13 +238,19 @@ void check_perfect_split_trace() {
                     std::vector<T>(event.lower.begin(), event.lower.end()));
             };
         };
-        REQUIRE(uncounted.try_pop(capture(actual)) == counted.try_pop(capture(expected)));
+        const auto key = counted.try_pop(capture(expected));
+        REQUIRE(uncounted.try_pop(capture(actual)) == key);
+        REQUIRE(unobserved.try_pop() == key);
         REQUIRE(actual == expected);
         REQUIRE(uncounted.valid());
         REQUIRE(uncounted.size() == counted.size());
         REQUIRE(std::equal(uncounted.pivots().begin(), uncounted.pivots().end(),
                            counted.pivots().begin(), counted.pivots().end()));
         REQUIRE(std::equal(uncounted.buckets().begin(), uncounted.buckets().end(),
+                           counted.buckets().begin(), counted.buckets().end()));
+        REQUIRE(std::equal(unobserved.pivots().begin(), unobserved.pivots().end(),
+                           counted.pivots().begin(), counted.pivots().end()));
+        REQUIRE(std::equal(unobserved.buckets().begin(), unobserved.buckets().end(),
                            counted.buckets().begin(), counted.buckets().end()));
     };
     for (std::size_t i = 0; i < 256; ++i) {

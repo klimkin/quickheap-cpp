@@ -297,7 +297,23 @@ private:
 
     template <class Observer>
     T pop_nonempty(Observer&& observer) {
-        while (buckets_[pivots_.size()].size() > 1) split_terminal(observer);
+        constexpr bool skip_pair_split = Perfect && !Count &&
+            std::is_same_v<std::remove_cvref_t<Observer>, NoObserver>;
+        while (true) {
+            auto& bucket = buckets_[pivots_.size()];
+            if constexpr (skip_pair_split) {
+                // Splitting two keys and popping the lower half leaves only the larger key.
+                if (bucket.size() == 2) {
+                    const auto low = std::min(bucket[0], bucket[1]);
+                    bucket[0] = std::max(bucket[0], bucket[1]);
+                    bucket.pop_back();
+                    --size_;
+                    return low;
+                }
+            }
+            if (bucket.size() <= 1) break;
+            split_terminal(observer);
+        }
         auto& bucket = buckets_[pivots_.size()];
         const auto key = bucket.back();
         bucket.pop_back();
