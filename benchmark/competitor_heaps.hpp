@@ -199,7 +199,13 @@ template <typename T, bool CountComparisons = false> class WeakHeap {
             }
             while (pos != 0) {
                 if constexpr (CountComparisons) ++stats_.pops;
-                if (std::less<T>{}(data[pos], root)) {
+                const bool exchange = std::less<T>{}(data[pos], root);
+                if constexpr (std::is_integral_v<T>) {
+                    const T child = data[pos];
+                    data[pos] = exchange ? root : child;
+                    root = exchange ? child : root;
+                    reverse[pos] ^= static_cast<std::uint8_t>(exchange);
+                } else if (exchange) {
                     std::swap(root, data[pos]);
                     reverse[pos] ^= 1;
                 }
