@@ -6,9 +6,11 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
 #include <limits>
 #include <memory>
+#include <new>
 #include <optional>
 #include <stdexcept>
 #include <type_traits>
@@ -28,6 +30,53 @@ namespace quickheap::bench {
 struct ComparisonStats {
     std::uint64_t pushes = 0;
     std::uint64_t pops = 0;
+};
+
+// Grows through realloc like Rust's Vec; std::vector's allocate-copy-free growth
+// faults fresh pages. Pointer bounds keep stores of long from aliasing a size_t count.
+template <typename T> class ReallocBuffer {
+    static_assert(std::is_trivially_copyable_v<T>);
+
+  public:
+    ReallocBuffer() = default;
+    ReallocBuffer(ReallocBuffer &&other) noexcept
+        : begin_(std::exchange(other.begin_, nullptr)), end_(std::exchange(other.end_, nullptr)),
+          limit_(std::exchange(other.limit_, nullptr)) {}
+    ReallocBuffer &operator=(ReallocBuffer &&other) noexcept {
+        std::swap(begin_, other.begin_);
+        std::swap(end_, other.end_);
+        std::swap(limit_, other.limit_);
+        return *this;
+    }
+    ~ReallocBuffer() { std::free(begin_); }
+
+    void push_back(T value) {
+        if (end_ == limit_) grow();
+        *end_++ = value;
+    }
+    void pop_back() { --end_; }
+    T &operator[](std::size_t i) { return begin_[i]; }
+    const T &operator[](std::size_t i) const { return begin_[i]; }
+    T &front() { return *begin_; }
+    T &back() { return end_[-1]; }
+    bool empty() const { return begin_ == end_; }
+    std::size_t size() const { return static_cast<std::size_t>(end_ - begin_); }
+    std::size_t capacity() const { return static_cast<std::size_t>(limit_ - begin_); }
+
+  private:
+    [[gnu::noinline]] void grow() {
+        const auto size = this->size();
+        const auto capacity = size ? 2 * size : 1;
+        auto *const data = static_cast<T *>(std::realloc(begin_, capacity * sizeof(T)));
+        if (data == nullptr) throw std::bad_alloc();
+        begin_ = data;
+        end_ = data + size;
+        limit_ = data + capacity;
+    }
+
+    T *begin_ = nullptr;
+    T *end_ = nullptr;
+    T *limit_ = nullptr;
 };
 
 template <typename T, std::size_t Arity, bool CountComparisons = false,
@@ -143,7 +192,7 @@ class DaryHeap {
         return best;
     }
 
-    std::vector<T> elements_;
+    ReallocBuffer<T> elements_;
     ComparisonStats stats_;
 };
 
