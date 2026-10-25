@@ -136,6 +136,9 @@ class Bucket {
     }
 
     HWY_NOINLINE void sort_descending() noexcept {
+        if (std::is_sorted(columns_[0].begin(), columns_[0].end(), std::greater<>{})) {
+            return;
+        }
         if (Columns == 1 && size() > 8) {
             std::array<T, terminal_limit> sorted;
             sorted.fill(std::numeric_limits<T>::lowest());
