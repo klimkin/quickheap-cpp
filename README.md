@@ -87,54 +87,50 @@ enabled, and are not a stable API.
 
 ## Performance
 
-![Nanoseconds per push and pop pair divided by log2 n, u64 keys](docs/img/algorithms-u64.svg)
+![Runtime per element divided by lg n for i32 and i64 keys](docs/img/algorithms.svg)
 
-Each heap holds `n` `u64` keys and repeats `10n` times: pop the minimum, then
-push it back plus a random offset (`MonotoneConstantSize`). The plot divides
-time per pair by $\log_2 n$, so a comparison heap with constant per-level cost
-draws a flat line. `SimdQuickHeap` is the fastest heap from $2^{15}$ upward
-and stays within 1.6x of its $2^{10}$ time at $2^{25}$. Points mark the
-median of 3 trials and bars the range. The tall `std_priority_queue` bar at
-$2^{23}$ comes from one trial at 2.8x the median on the shared host.
+Each heap holds `n` keys and repeats `10n` times: pop the minimum, then push
+it back plus a random offset (`MonotoneConstantSize`). The plot shows `i32`
+and `i64` keys and divides time per pair by $\log_2 n$, so a comparison heap
+with constant per-level cost draws a flat line. Each point is the median of
+three separate passes over all sizes. The figure follows the layout of the
+upstream Rust README.
 
-The table gives nanoseconds per push and pop pair, the median of 3 trials.
-LLC misses counts `PERF_COUNT_HW_CACHE_MISSES` per pair at $2^{25}$. A `*`
-marks a single trial: each of those runs takes 10 to 20 minutes.
+The table gives nanoseconds per push and pop pair for `u64` keys, the median
+of 3 trials. LLC misses counts `PERF_COUNT_HW_CACHE_MISSES` per pair at
+$2^{25}$. A `*` marks a single trial: each of those runs takes 10 to 20
+minutes. The top half lists the plotted heaps; the bottom half lists other
+implementations.
 
 | Heap | Algorithm | $2^{10}$ | $2^{15}$ | $2^{20}$ | $2^{25}$ | LLC misses |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| `std_priority_queue` | `std::priority_queue` binary heap | 35.9 | 54.3 | 83.8 | 183.0 | 27.745 |
-| `custom_binary_heap` | Binary heap, swap sift | 18.2 | 28.2 | 86.4 | 749.0 | 16.867 |
-| `dary4` | 4-ary heap, hole sift | 10.4 | 20.8 | 39.1 | 330.9 | 8.347 |
-| `dary8` | 8-ary heap, hole sift | 14.7 | 18.6 | 41.6 | 255.6 | 7.632 |
-| `dary16` | 16-ary heap, hole sift | 18.2 | 26.1 | 44.6 | 282.2 | 9.524 |
-| `custom_dary4` | 4-ary heap, swap sift | 12.9 | 23.5 | 60.6 | 365.9 | 11.343 |
-| `custom_dary8` | 8-ary heap, swap sift | 17.2 | 22.7 | 57.5 | 276.4 | 10.313 |
-| `boost_dary4` | Boost 4-ary heap | 16.0 | 28.0 | 54.8 | 362.6 | 13.476 |
-| `weak_heap` | Weak heap | 18.6 | 27.9 | 72.4 | 442.3 | 14.117 |
-| `radix_heap` | Radix heap, native | 25.1 | 29.9 | 35.2 | 39.9 | 0.915 |
-| `external_radix_heap` | Radix heap, `iwiwi/radix-heap` | 32.1 | 36.5 | 40.5 | 43.0 | 0.756 |
-| `sequence_heap` | Sanders' sequence heap | 28.0 | 45.5 | 64.9 | 80.9 | 0.348 |
-| `s3q` | S3Q sample-sort queue | 18.2 | 19.2 | 24.4 | 33.3 | 1.661 |
-| `original_quickheap` | Original quickheap, Paredes & Navarro | 39.9 | 48.5 | 62.0 | 72.5 | 1.082 |
-| `scalar_quickheap` | Scalar quickheap | 35.6 | 49.1 | 64.2 | 80.9 | 1.857 |
-| `blocked_quickheap` | Quickheap, linked 128-slot blocks | 65.1 | 85.0 | 108.8 | 154.8 | 6.474 |
-| `quickheap` | SimdQuickHeap, AVX2 | 15.6 | 16.9 | 20.6 | 24.6 | 1.101 |
-| `boost_fibonacci` | Boost Fibonacci heap | 70.0 | 122.9 | 598.7 | 1592.7\* | 53.059\* |
-| `boost_pairing` | Boost pairing heap | 131.2 | 243.4 | 1218.2 | 3022.8\* | 67.131\* |
-| `boost_binomial` | Boost binomial heap | 255.6 | 385.3 | 1236.6 | 2651.8\* | 48.141\* |
-| `boost_skew` | Boost skew heap | 57.3 | 125.0 | 1187.4 | 3163.7\* | 54.068\* |
+| `std_priority_queue` | `std::priority_queue` binary heap | 35.7 | 109.1 | 94.7 | 193.8 | 30.278 |
+| `dary8` | 8-ary heap, hole sift | 15.1 | 36.6 | 40.7 | 395.7 | 9.763 |
+| `weak_heap` | Weak heap | 18.6 | 57.2 | 79.4 | 831.3 | 18.899 |
+| `radix_heap` | Radix heap, native | 27.5 | 58.4 | 37.9 | 41.4 | 1.633 |
+| `sequence_heap` | Sanders' sequence heap | 28.9 | 92.1 | 65.1 | 81.9 | 1.266 |
+| `s3q` | S3Q sample-sort queue | 15.7 | 38.0 | 26.4 | 35.0 | 1.851 |
+| `original_quickheap` | Original quickheap, Paredes & Navarro | 40.2 | 95.7 | 65.7 | 75.1 | 1.835 |
+| `scalar_quickheap` | Scalar quickheap | 36.4 | 106.3 | 65.2 | 83.3 | 2.984 |
+| `quickheap` | SimdQuickHeap, AVX2 | 15.6 | 35.8 | 44.9 | 26.2 | 1.616 |
+| | | | | | | |
+| `custom_binary_heap` | Binary heap, swap sift | 18.5 | 56.8 | 230.8 | 1022.8 | 16.133 |
+| `dary4` | 4-ary heap, hole sift | 10.7 | 49.2 | 41.4 | 511.2 | 13.724 |
+| `dary16` | 16-ary heap, hole sift | 18.3 | 54.6 | 51.0 | 332.2 | 11.153 |
+| `custom_dary4` | 4-ary heap, swap sift | 13.0 | 51.8 | 65.4 | 568.7 | 20.546 |
+| `custom_dary8` | 8-ary heap, swap sift | 18.0 | 39.5 | 59.5 | 425.1 | 16.271 |
+| `boost_dary4` | Boost 4-ary heap | 16.3 | 56.3 | 55.7 | 550.4 | 19.216 |
+| `external_radix_heap` | Radix heap, `iwiwi/radix-heap` | 35.4 | 73.9 | 41.8 | 43.7 | 1.380 |
+| `blocked_quickheap` | Quickheap, linked 128-slot blocks | 359.9 | 174.3 | 115.4 | 176.6 | 9.370 |
+| `boost_fibonacci` | Boost Fibonacci heap | 66.8 | 307.8 | 610.9 | 1592.7\* | 53.059\* |
+| `boost_pairing` | Boost pairing heap | 421.6 | 252.9 | 1857.9 | 3022.8\* | 67.131\* |
+| `boost_binomial` | Boost binomial heap | 541.4 | 757.7 | 1372.8 | 2651.8\* | 48.141\* |
+| `boost_skew` | Boost skew heap | 56.5 | 277.6 | 2006.7 | 3163.7\* | 54.068\* |
 
 Notes on the table:
 
 - Radix heaps require monotone keys. This workload satisfies that; general
   workloads do not.
-- Small d-ary heaps win at $2^{10}$, where the whole 8 KiB heap fits in L1.
-- At $2^{25}$ `std_priority_queue` beats every d-ary heap despite 3.6x more
-  LLC misses than `dary8`. Its 27.7 misses per pair cannot run one after
-  another in 183 ns, so they overlap. The likely cause is that libstdc++ sifts
-  with predictable branches, which lets the CPU issue the next level's loads
-  early. This explanation is inferred from the counters, not tested.
 - The Rust README reports an "L2 misses" column measured on AMD. Its counter
   differs, so the miss columns are not comparable.
 
