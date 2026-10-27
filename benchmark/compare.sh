@@ -17,6 +17,8 @@ Environment:
   PAIR           quickheap (AVX2) or std, default quickheap
   MIN MAX STEP   Size exponents, defaults 10 16 2
   ELEM           i32 or i64, default i64
+  WORKLOADS      Controlled workloads, comma-separated; default
+                 HeapSort,MonotoneConstantSize,MonotoneWiggle,RandomWiggle
   REPEAT WARMUP  Controlled trials, defaults 3 1
   BENCH_CPU      One kernel-identified P core, default first available
   RUNS           Independent alternating process runs, default 7
@@ -54,6 +56,13 @@ case "$pair" in
 esac
 elem=${ELEM:-i64}
 case "$elem" in i32|i64) ;; *) fail 'ELEM requires i32 or i64' ;; esac
+IFS=, read -r -a workloads <<< "${WORKLOADS:-HeapSort,MonotoneConstantSize,MonotoneWiggle,RandomWiggle}"
+for workload in "${workloads[@]}"; do
+    case "$workload" in
+        HeapSort|MonotoneConstantSize|RandomConstantSize|MonotoneWiggle|RandomWiggle|GeometricMonotoneWiggle|WorstCaseDescending|MostlyPushDecreasing) ;;
+        *) fail "unknown workload $workload" ;;
+    esac
+done
 minimum=${MIN:-10}; maximum=${MAX:-16}; step=${STEP:-2}
 repeat=${REPEAT:-3}; warmup=${WARMUP:-1}; runs=${RUNS:-7}
 for value in "$minimum" "$maximum" "$step" "$repeat" "$warmup" "$runs"; do
@@ -224,7 +233,7 @@ PY
     local exponents=() stems=() fixtures=() reports=()
     for (( exponent=minimum; exponent<=maximum; exponent+=step )); do exponents+=("$exponent"); done
     if [[ ${exponents[${#exponents[@]}-1]} != "$maximum" ]]; then exponents+=("$maximum"); fi
-    for workload in HeapSort MonotoneConstantSize MonotoneWiggle RandomWiggle; do
+    for workload in "${workloads[@]}"; do
         for exponent in "${exponents[@]}"; do
             for seed in "${seeds[@]}"; do
                 stem="$workload-$elem-$exponent-seed-$seed"

@@ -65,6 +65,7 @@ Set `MIN`, `MAX`, `STEP`, or `ELEM` to change controlled inputs. Controlled runs
 share fixture bytes, compare full correctness traces, and alternate runner order
 per fixture and process. `RUNS` defaults to seven independent process runs.
 `SEEDS=1363692610,7,19` selects distinct controlled fixture streams; default seed
+Set `WORKLOADS` to a comma-separated list of workload names to change the set.
 preserves existing fixture bytes. `REPEAT` and `WARMUP` default to 3 and 1.
 Original profile uses every
 exponent between `MIN` and `MAX`, fixed three repeats, one warmup, and cutoffs.
