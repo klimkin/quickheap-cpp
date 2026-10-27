@@ -182,7 +182,8 @@ def plot(summaries, output):
     panel_height = 4 + 0.25 * math.ceil(len(heaps) / legend_columns)
     figure, axes = plt.subplots(len(panels), 1, squeeze=False,
                                 figsize=(11, panel_height * len(panels)))
-    colors = {heap: plt.get_cmap("tab20")(index % 20) for index, heap in enumerate(heaps)}
+    palette = "tab10" if len(heaps) <= 10 else "tab20"
+    colors = {heap: plt.get_cmap(palette)(index % 20) for index, heap in enumerate(heaps)}
     for axis, (panel, group) in zip(axes[:, 0], sorted(panels.items())):
         kind, workload, elem, units = panel
         graphs = sorted({summary.sample.graph for summary in group})
