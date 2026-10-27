@@ -52,15 +52,17 @@ BENCH_CPU=5 benchmark/evals/algorithms.sh \
 
 | File | Heaps | Sizes | Trials |
 | --- | --- | --- | --- |
-| `plot.csv` | Plotted heaps | $2^{10}$ to $2^{25}$, every power | 3, after 1 warmup |
-| `table.csv` | Remaining heaps | $2^{10}$, $2^{15}$, $2^{20}$ | 3, after 1 warmup |
-| `table-25.csv` | Remaining fast heaps | $2^{25}$ | 3, no warmup |
-| `slow-25.csv` | Boost Fibonacci, pairing, binomial, skew | $2^{25}$ | 1, no warmup |
+| `plot-1.csv` to `plot-3.csv` | Plotted heaps, `i32` and `i64` | $2^{10}$ to $2^{25}$, every power | 1 per pass, after 1 warmup |
+| `table.csv` | All heaps, `u64` | $2^{10}$, $2^{15}$, $2^{20}$ | 3, after 1 warmup |
+| `table-25.csv` | All heaps except slow Boost heaps, `u64` | $2^{25}$ | 3, no warmup |
+| `slow-25.csv` | Boost Fibonacci, pairing, binomial, skew, `u64` | $2^{25}$ | 1, no warmup |
 | `types.csv` | `quickheap`, `kv_quickheap`, `u32` and `u64` | $2^{20}$ | 5, after 1 warmup |
 | `machine.txt` | Kernel, `lscpu`, runner `--list` | | |
 
+The plot runs three separate passes over all sizes. A burst of load from
+other processes then affects one sample of a cell, and the median drops it.
 A slow Boost heap needs 10 to 20 minutes per trial at $2^{25}$, so those cells
-come from one trial. A full run takes about three hours on an Intel Core
+come from one trial. A full run takes about six hours on an Intel Core
 Ultra 9 285K. Pick a performance core: on hybrid Intel CPUs,
 `/sys/devices/cpu_core/cpus` lists them.
 
@@ -68,14 +70,17 @@ Ultra 9 285K. Pick a performance core: on hybrid Intel CPUs,
 
 ```sh
 python3 benchmark/evals/algorithms_table.py build/algorithms
-python3 benchmark/evals/plot.py build/algorithms/plot.csv \
-    --normalize opslogn --output docs/img/algorithms-u64.svg
+python3 benchmark/evals/algorithms_plot.py build/algorithms/plot-*.csv \
+    --output docs/img/algorithms.svg
 ```
 
 `algorithms_table.py` prints both README tables as Markdown. A `*` marks a
-single-trial cell. The plot divides time by `log2 n`, so a comparison sort's
-$n \log_2 n$ bound draws a horizontal line. Error bars span the minimum and
-maximum trial.
+single-trial cell. The table follows the upstream README: plotted heaps
+first, then the rest. `algorithms_plot.py` draws the upstream README figure:
+`i32` and `i64` panels, log-scale axes, and the upstream labels, colours, and
+line styles. It plots the median of each heap and size, divided by
+$\log_2 n$, so a comparison sort's $n \log_2 n$ bound draws a horizontal
+line.
 
 For other workloads, key types, or heaps, call `quickheap_bench` directly. See
 [README.md](README.md#run-synthetic-workloads) for its options.
