@@ -295,12 +295,12 @@ template <typename T> class KeyQuickHeap {
     using Item = T;
     void push(T key) { heap_.push(key); }
     T pop() {
-        T value;
+        T value{};
         heap_.pop_into(value);
         return value;
     }
     std::optional<T> try_pop() {
-        T value;
+        T value{};
         return heap_.pop_into(value) ? std::optional<T>(value) : std::nullopt;
     }
     std::size_t size() const { return heap_.size(); }
