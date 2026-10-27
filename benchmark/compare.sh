@@ -57,7 +57,10 @@ esac
 elem=${ELEM:-i64}
 case "$elem" in i32|i64) ;; *) fail 'ELEM requires i32 or i64' ;; esac
 IFS=, read -r -a workloads <<< "${WORKLOADS:-HeapSort,MonotoneConstantSize,MonotoneWiggle,RandomWiggle}"
+declare -A seen_workloads=()
 for workload in "${workloads[@]}"; do
+    [[ -z ${seen_workloads[$workload]:-} ]] || fail "duplicate workload $workload"
+    seen_workloads[$workload]=1
     case "$workload" in
         HeapSort|MonotoneConstantSize|RandomConstantSize|MonotoneWiggle|RandomWiggle|GeometricMonotoneWiggle|WorstCaseDescending|MostlyPushDecreasing) ;;
         *) fail "unknown workload $workload" ;;

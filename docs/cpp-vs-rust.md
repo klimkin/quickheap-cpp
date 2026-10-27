@@ -54,8 +54,8 @@ one seed. Treat those as no measurable difference.
 | MostlyPushDecreasing | -15.8% | -20.5% | -23.5% | -26.4% |
 
 Absolute times at $n = 2^{16}$, as the median over seeds of nanoseconds per
-workload operation. An operation is one push and pop pair for HeapSort and
-the constant-size workloads, and one workload step otherwise. The last
+workload operation. Every workload performs equal numbers of pushes and
+pops, so one operation is one push plus one pop, amortized. The last
 column counts seeds where C++ was faster and the process ranges did not
 overlap.
 
@@ -98,7 +98,8 @@ key a pop returns.
 | `pop_into(T&)` returns `bool` instead of an optional | GCC returns `std::optional<T>` through a stack spill, which stalled store forwarding on every pop |
 | One thread-local RNG object, no `Rc` clone per call | C++ has no `Rc`; Rust's `rng()` clones a reference-counted handle on every sample |
 | `Vec` growth uses `operator new` instead of `realloc` | A failed allocation throws `std::bad_alloc` and leaves the vector intact |
-| `push` reserves capacity before mutating and rolls back on exception | C++ exception safety; Rust aborts on allocation failure |
+| Key/value `push` reserves both columns before writing | Keeps keys and values paired if an allocation throws; Rust aborts instead |
+| `partition` removes the new pivot if partitioning throws | Keeps the heap valid after `std::bad_alloc`; Rust aborts instead |
 
 ## Why C++ runs faster
 

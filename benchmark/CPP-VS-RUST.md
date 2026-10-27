@@ -18,12 +18,14 @@ reads the same fixture format and prints the same CSV as `quickheap_bench`.
 
 ```sh
 BENCH_CPU=3 HOST_PROFILE=clang-native CPP_AXIS=clang-native \
+RUSTFLAGS="-C target-cpu=native -C force-frame-pointers=yes" \
 SEEDS=1363692610,7,42 \
 WORKLOADS=HeapSort,MonotoneConstantSize,MonotoneWiggle,RandomWiggle,RandomConstantSize,GeometricMonotoneWiggle,WorstCaseDescending,MostlyPushDecreasing \
     benchmark/compare.sh controlled-operations build/cpp-vs-rust
 ```
 
-`HOST_PROFILE` selects the Conan host profile and `CPP_AXIS` the compiler
+`RUSTFLAGS` replaces any Cargo `build.rustflags`, so it pins the Rust flags
+the report used regardless of local Cargo configuration. `HOST_PROFILE` selects the Conan host profile and `CPP_AXIS` the compiler
 configuration. On x86-64 the CMake build adds
 `-mavx2 -mbmi -mpopcnt` itself, so the profile needs no `-march`.
 [`compare.sh`](compare.sh) performs these steps:

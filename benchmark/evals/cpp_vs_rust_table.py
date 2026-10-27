@@ -17,11 +17,18 @@ def main():
     rows = list(csv.DictReader(parser.parse_args().summary.open(newline="", encoding="utf-8")))
     pairs = {}
     for row in rows:
-        if row["metric"] != "nanos" or row["complete"] != "True":
+        if row["metric"] != "nanos":
             continue
+        if row["complete"] != "True":
+            raise SystemExit(f"{row['workload']} n={row['n']} {row['language']}: incomplete")
         scale = math.log2(int(row["n"]))
         value = tuple(float(row[k]) * scale for k in ("process_median", "process_min", "process_max"))
         pairs.setdefault((row["workload"], int(row["n"]), row["fixture_digest"]), {})[row["language"]] = value
+    digests = {}
+    for workload, n, digest in pairs:
+        digests.setdefault((workload, n), set()).add(digest)
+    if len({len(d) for d in digests.values()}) > 1:
+        raise SystemExit("seed count differs between workload and size cells")
     cells = {}
     for (workload, n, _), sides in pairs.items():
         if set(sides) != {"C++", "Rust"}:
