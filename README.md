@@ -80,6 +80,11 @@ dependencies for static and shared packages. Consumers require only Quickheap.
 Public headers do not expose SIMD types. Installed headers and libraries support
 Conan editable packages.
 
+`quickheap/detail/` holds the header-only heap that the library wraps. The
+benchmarks include it directly so heap calls inline, as the Rust harness does.
+These headers require C++20, select AVX2 kernels only when compiled with AVX2
+enabled, and are not a stable API.
+
 ## Run benchmarks
 
 Local performance checks use Catch2 benchmarks in `test/`. A normal test

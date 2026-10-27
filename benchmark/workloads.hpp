@@ -2,6 +2,7 @@
 #define QUICKHEAP_BENCH_WORKLOADS_HPP
 
 #include "quickheap.hpp"
+#include "quickheap/detail/simd_quickheap.hpp"
 
 #include <algorithm>
 #include <array>
@@ -293,13 +294,20 @@ template <typename T> class KeyQuickHeap {
   public:
     using Item = T;
     void push(T key) { heap_.push(key); }
-    T pop() { return heap_.pop(); }
-    std::optional<T> try_pop() { return heap_.try_pop(); }
+    T pop() {
+        T value;
+        heap_.pop_into(value);
+        return value;
+    }
+    std::optional<T> try_pop() {
+        T value;
+        return heap_.pop_into(value) ? std::optional<T>(value) : std::nullopt;
+    }
     std::size_t size() const { return heap_.size(); }
     std::size_t capacity() const { return heap_.capacity(); }
 
   private:
-    quickheap::Heap<T> heap_;
+    quickheap::detail::SimdQuickHeap<T> heap_;
 };
 
 template <typename T> class KvQuickHeap {
