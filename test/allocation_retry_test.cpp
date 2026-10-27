@@ -18,25 +18,37 @@ void* operator new(std::size_t count) {
 void operator delete(void* storage) noexcept { std::free(storage); }
 void operator delete(void* storage, std::size_t) noexcept { std::free(storage); }
 
+// Pushes fresh rows under an allocation budget until one push throws; returns false if
+// none does.
+template <typename T>
+bool push_until_failure(quickheap::KvSimdQuickHeap<T>& heap, int budget, T& next_key) {
+    for (int attempt = 0; attempt < 1024; ++attempt) {
+        allocations_before_failure = budget;
+        try {
+            heap.push(next_key, static_cast<T>(next_key * 10));
+        } catch (const std::bad_alloc&) {
+            allocations_before_failure = -1;
+            return true;
+        }
+        allocations_before_failure = -1;
+        ++next_key;
+    }
+    return false;
+}
+
 template <typename T> bool retries_preserve_rows() {
     quickheap::KvSimdQuickHeap<T> heap;
-    heap.push(5, 50);
-    allocations_before_failure = 1;
-    try {
-        heap.push(6, 60);
-        allocations_before_failure = -1;
+    T next_key = 5;
+    if (!push_until_failure(heap, 1, next_key) || !push_until_failure(heap, 0, next_key)) {
         return false;
-    } catch (const std::bad_alloc&) {}
-    allocations_before_failure = 0;
-    try {
-        heap.push(6, 60);
-        allocations_before_failure = -1;
-        return false;
-    } catch (const std::bad_alloc&) {}
-    allocations_before_failure = -1;
-    heap.push(6, 60);
-    return heap.pop() == std::pair<T, T>{5, 50} &&
-           heap.pop() == std::pair<T, T>{6, 60} && !heap.try_pop();
+    }
+    heap.push(next_key, static_cast<T>(next_key * 10));
+    for (T key = 5; key <= next_key; ++key) {
+        if (heap.pop() != std::pair<T, T>{key, static_cast<T>(key * 10)}) {
+            return false;
+        }
+    }
+    return !heap.try_pop();
 }
 
 int main() {
