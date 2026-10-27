@@ -9,6 +9,10 @@ Native runners write CSV to standard output and diagnostics to standard error.
 `--help` lists each runner's options. `quickheap_bench --list` lists enabled
 heaps, workloads, and element types.
 
+[ALGORITHMS.md](ALGORITHMS.md) reproduces the README algorithm tables.
+[CPP-VS-RUST.md](CPP-VS-RUST.md) reproduces the C++ and Rust comparison in
+[docs/cpp-vs-rust.md](../docs/cpp-vs-rust.md).
+
 ## Select benchmark profile
 
 Use `original-rust` to reproduce original Rust workload lifecycle. Use `controlled-operations` to compare queue operations on shared inputs. Controlled remains default.
@@ -61,11 +65,11 @@ Default pair compares production Quickheap with AVX2. Set `PAIR=std` to compare
 standard-library queues, which catalog labels as substitutes.
 
 Defaults use i64 and four active workloads at exponents 10, 12, 14, and 16.
+Set `WORKLOADS` to a comma-separated list of workload names to change the set.
 Set `MIN`, `MAX`, `STEP`, or `ELEM` to change controlled inputs. Controlled runs
 share fixture bytes, compare full correctness traces, and alternate runner order
 per fixture and process. `RUNS` defaults to seven independent process runs.
 `SEEDS=1363692610,7,19` selects distinct controlled fixture streams; default seed
-Set `WORKLOADS` to a comma-separated list of workload names to change the set.
 preserves existing fixture bytes. `REPEAT` and `WARMUP` default to 3 and 1.
 Original profile uses every
 exponent between `MIN` and `MAX`, fixed three repeats, one warmup, and cutoffs.
