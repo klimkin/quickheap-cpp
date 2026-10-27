@@ -13,7 +13,7 @@ Unrepaired original Rust source fails on current nightly. An explicitly attribut
 
 | Upstream configuration | C++ counterpart | Status | Remaining gate |
 | --- | --- | --- | --- |
-| Production SIMD AVX2 | `quickheap` | Port; target selected by Highway | `--backend avx2`, independent executable option |
+| Production SIMD AVX2 | `quickheap` | Port; AVX2 intrinsics | `--backend avx2`, independent executable option |
 | Production SIMD AVX512 | `quickheap` | Explicit `--backend avx512`, independent executable option | Execute capable host |
 | Development flat SIMD AVX2/AVX512 | Experimental SIMD variants | Declared substitute | Flat parameters and exact algorithm evidence |
 | Scalar median3 linear | `scalar_median3_linear` | C++ paired scalar engine | Verified shared transitions and defined counts |
