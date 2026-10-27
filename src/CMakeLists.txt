@@ -1,4 +1,4 @@
-add_library(quickheap quickheap.cpp simd.cpp)
+add_library(quickheap quickheap.cpp)
 include(GenerateExportHeader)
 generate_export_header(quickheap
     BASE_NAME QUICKHEAP
@@ -9,16 +9,14 @@ target_include_directories(quickheap
     PUBLIC ${PROJECT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR}/include
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
-target_link_libraries(quickheap PRIVATE highway::hwy)
-
 get_target_property(quickheap_type quickheap TYPE)
 if(quickheap_type STREQUAL "STATIC_LIBRARY")
     target_compile_definitions(quickheap PUBLIC QUICKHEAP_STATIC_DEFINE)
 endif()
 if(QUICKHEAP_SCALAR)
-    target_compile_definitions(quickheap PRIVATE HWY_COMPILE_ONLY_SCALAR=1)
-else()
-    target_compile_definitions(quickheap PRIVATE HWY_COMPILE_ALL_ATTAINABLE=1)
+    target_compile_definitions(quickheap PRIVATE QUICKHEAP_FORCE_SCALAR)
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
+    target_compile_options(quickheap PRIVATE -mavx2 -mbmi -mpopcnt)
 endif()
 
 install(TARGETS quickheap
@@ -33,3 +31,4 @@ install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/include/export.hpp
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/quickheap DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

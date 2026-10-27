@@ -43,9 +43,6 @@ class QuickHeapConan(ConanFile):
         self.cpp.build.includedirs = [os.path.join("package", "include")]
         self.cpp.source.includedirs = []
 
-    def requirements(self):
-        self.requires("highway/1.4.0", transitive_headers=False)
-
     def build_requirements(self):
         self.tool_requires("cmake/[>=4.0]")
         self.test_requires("catch2/3.16.0")

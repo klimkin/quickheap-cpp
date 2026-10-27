@@ -1,7 +1,7 @@
 #include "quickheap.h"
 #include "key_value.hpp"
 
-#include "bucket_heap.hpp"
+#include "quickheap/detail/simd_quickheap.hpp"
 
 #include <cassert>
 #include <cstdlib>
@@ -32,7 +32,7 @@ T& require_pointer(T* pointer) noexcept {
 
 #define QUICKHEAP_DEFINE_C(T, Handle, prefix)                                 \
     struct Handle {                                                         \
-        quickheap::detail::BucketHeap<T, 1> heap;                            \
+        quickheap::detail::SimdQuickHeap<T> heap;                            \
     };                                                                      \
     extern "C" {                                                            \
     Handle* prefix##_new(void) {                                             \
@@ -42,18 +42,13 @@ T& require_pointer(T* pointer) noexcept {
         c_boundary([&] { delete &require_pointer(pointer); });              \
     }                                                                       \
     void prefix##_push(Handle* pointer, T value) {                            \
-        c_boundary([&] { require_pointer(pointer).heap.push({value}); });     \
+        c_boundary([&] { require_pointer(pointer).heap.push(value); });       \
     }                                                                       \
     bool prefix##_pop(Handle* pointer, T* output) {                           \
         return c_boundary([&] {                                             \
             auto& heap = require_pointer(pointer).heap;                     \
             auto& destination = require_pointer(output);                   \
-            quickheap::detail::BucketHeap<T, 1>::Row result;                \
-            if (!heap.pop_into(result)) {                                   \
-                return false;                                              \
-            }                                                              \
-            destination = result[0];                                       \
-            return true;                                                   \
+            return heap.pop_into(destination);                              \
         });                                                                 \
     }                                                                       \
     uintptr_t prefix##_len(const Handle* pointer) {                          \
@@ -79,7 +74,7 @@ namespace quickheap {
 template <class T>
 class KvSimdQuickHeap<T>::Impl {
 public:
-    detail::BucketHeap<T, 2> heap;
+    detail::KvSimdQuickHeap<T> heap;
 };
 
 template <class T>
@@ -96,16 +91,16 @@ KvSimdQuickHeap<T>& KvSimdQuickHeap<T>::operator=(KvSimdQuickHeap&&) noexcept = 
 
 template <class T>
 void KvSimdQuickHeap<T>::push(T key, T value) {
-    impl_->heap.push({key, value});
+    impl_->heap.push(key, value);
 }
 
 template <class T>
 std::optional<std::pair<T, T>> KvSimdQuickHeap<T>::try_pop() {
-    typename detail::BucketHeap<T, 2>::Row result;
-    if (!impl_->heap.pop_into(result)) {
+    std::pair<T, T> result;
+    if (!impl_->heap.pop_into(result.first, result.second)) {
         return std::nullopt;
     }
-    return std::pair<T, T>{result[0], result[1]};
+    return result;
 }
 
 template <class T>

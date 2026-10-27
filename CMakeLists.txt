@@ -6,9 +6,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(GNUInstallDirs)
 include(CTest)
 
-option(QUICKHEAP_SCALAR "Build scalar Highway kernels only" OFF)
-
-find_package(highway REQUIRED CONFIG)
+option(QUICKHEAP_SCALAR "Build scalar kernels instead of AVX2" OFF)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-Wall -Wextra -Werror)

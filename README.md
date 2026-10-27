@@ -2,14 +2,15 @@
 
 Pure C++ port of [quickheap](https://github.com/RagnarGrootKoerkamp/quickheap).
 Descending pivots divide reusable buckets. Pop partitions oversized minimum
-buckets, then sorts at most 16 entries. Highway 1.4.0 provides runtime SIMD
-dispatch and a scalar build.
+buckets, then sorts at most 16 entries. The algorithm mirrors upstream Rust
+`SimdQuickHeap` step for step. x86-64 builds use AVX2 intrinsics and require an
+AVX2 CPU. `-o quickheap/*:scalar=True` builds portable scalar kernels.
 
 ## Build and test
 
 Requires Conan 2, CMake 4, Ninja, and a C++20 compiler. Public C++ headers
 support C++17 consumers. Conan profiles select build standard. Conan supplies
-Highway and Catch2 3.16.0 for library tests.
+Catch2 3.16.0 for library tests.
 
 If no Conan profile is configured, detect the installed compiler first.
 
@@ -76,7 +77,7 @@ target_link_libraries(app PRIVATE quickheap::quickheap)
 
 Conan's CMakeDeps generator provides `quickheap::quickheap` and propagates
 dependencies for static and shared packages. Consumers require only Quickheap.
-Public headers do not expose Highway. Installed headers and libraries support
+Public headers do not expose SIMD types. Installed headers and libraries support
 Conan editable packages.
 
 ## Run benchmarks
