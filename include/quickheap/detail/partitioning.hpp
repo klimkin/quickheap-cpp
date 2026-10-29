@@ -23,6 +23,7 @@ struct VecPartitioning {
     using S = SimdElem<T, Backend>;
     static constexpr std::size_t L = S::L;
 
+    template <bool OneCount = false>
     static void partition(Vec<T>& cur_layer, Vec<T>& next_layer, T pivot, std::size_t pivot_pos) {
         assert(next_layer.empty());
         const auto n = cur_layer.size();
@@ -43,13 +44,13 @@ struct VecPartitioning {
         T* const next_ptr = next_layer.data();
 
         for (std::size_t i = 0; i < n2; i += L) {
-            S::partition_fast(S::load(cur_ptr + i), threshold, pivot_pos,
-                              cur_ptr, cur_len, next_ptr, next_len);
+            S::template partition_fast<OneCount>(S::load(cur_ptr + i), threshold, pivot_pos,
+                                                 cur_ptr, cur_len, next_ptr, next_len);
         }
 
         if (n2 < n) {
-            S::partition_slow(S::load(cur_ptr + n2), n - n2, threshold, pivot_pos,
-                              cur_ptr, cur_len, next_ptr, next_len);
+            S::template partition_slow<OneCount>(S::load(cur_ptr + n2), n - n2, threshold,
+                                                 pivot_pos, cur_ptr, cur_len, next_ptr, next_len);
         }
 
         cur_layer.set_len(cur_len);

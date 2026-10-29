@@ -67,7 +67,8 @@ class SimdQuickHeap {
 
         // Rust aborts on allocation failure; C++ unwinds, so drop the pivot to keep the heap valid.
         try {
-            VecPartitioning<T, Backend>::partition(cur_layer, next_layer, pivot, pivot_pos);
+            VecPartitioning<T, Backend>::template partition<(Opts & opt_one_count) != 0>(
+                cur_layer, next_layer, pivot, pivot_pos);
         } catch (...) {
             pivots_.pop();
             throw;

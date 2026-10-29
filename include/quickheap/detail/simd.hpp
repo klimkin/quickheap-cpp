@@ -226,17 +226,26 @@ struct SimdElem : Lanes<T, Backend> {
         return (lt | (eq & static_cast<unsigned>(equal_masks[pivot_pos % 16]))) & full;
     }
 
+    template <bool OneCount = false>
     static void partition_fast(Simd vals, Simd threshold, std::size_t pivot_pos,
                                T* cur_write, std::size_t& cur_write_cnt,
                                T* next_write, std::size_t& next_write_cnt) noexcept {
         const auto small = small_mask(vals, threshold, pivot_pos);
         const auto large = small ^ full;
         V::compress_store(cur_write + cur_write_cnt, vals, small);
-        cur_write_cnt += static_cast<std::size_t>(std::popcount(large));
-        V::compress_store(next_write + next_write_cnt, vals, large);
-        next_write_cnt += static_cast<std::size_t>(std::popcount(small));
+        if constexpr (OneCount) {
+            const auto k = static_cast<std::size_t>(std::popcount(small));
+            cur_write_cnt += L - k;
+            V::compress_store(next_write + next_write_cnt, vals, large);
+            next_write_cnt += k;
+        } else {
+            cur_write_cnt += static_cast<std::size_t>(std::popcount(large));
+            V::compress_store(next_write + next_write_cnt, vals, large);
+            next_write_cnt += static_cast<std::size_t>(std::popcount(small));
+        }
     }
 
+    template <bool OneCount = false>
     static void partition_slow(Simd vals, std::size_t len, Simd threshold, std::size_t pivot_pos,
                                T* cur_write, std::size_t& cur_write_cnt,
                                T* next_write, std::size_t& next_write_cnt) noexcept {
@@ -244,9 +253,16 @@ struct SimdElem : Lanes<T, Backend> {
         const auto small = small_mask(vals, threshold, pivot_pos) & in_range;
         const auto large = (small ^ full) & in_range;
         V::compress_store(cur_write + cur_write_cnt, vals, large ^ full);
-        cur_write_cnt += static_cast<std::size_t>(std::popcount(large));
-        V::compress_store(next_write + next_write_cnt, vals, small ^ full);
-        next_write_cnt += static_cast<std::size_t>(std::popcount(small));
+        if constexpr (OneCount) {
+            const auto k = static_cast<std::size_t>(std::popcount(small));
+            cur_write_cnt += len - k;
+            V::compress_store(next_write + next_write_cnt, vals, small ^ full);
+            next_write_cnt += k;
+        } else {
+            cur_write_cnt += static_cast<std::size_t>(std::popcount(large));
+            V::compress_store(next_write + next_write_cnt, vals, small ^ full);
+            next_write_cnt += static_cast<std::size_t>(std::popcount(small));
+        }
     }
 
     static void partition_fast_kv(Simd keys, Simd vals, Simd threshold, std::size_t pivot_pos,
