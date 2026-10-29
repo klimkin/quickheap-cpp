@@ -161,9 +161,8 @@ These differences remain:
 - C++ uses Clang 24 here. GCC changes the `MostlyPushDecreasing` result, as
   noted above.
 
-## Earlier reports
+## Earlier optimizations
 
-`performance-comparison-2026-10-*.md` and `performance-fixes-2026-10-23.md`
-in this directory predate the alignment. Their C++ heap used Highway and
-algorithm changes that upstream Rust lacks, and their Rust side came from a
-modified fork. Their numbers do not describe the current code.
+Before the alignment, the C++ heap used Highway and algorithm changes that
+upstream Rust lacks. [`optimizations.md`](optimizations.md) lists those
+changes, their measured effects, and which ones apply to the current code.
