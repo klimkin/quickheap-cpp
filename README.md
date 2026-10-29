@@ -18,18 +18,12 @@ If no Conan profile is configured, detect the installed compiler first.
 conan profile detect
 ```
 
-Build with the detected profile or substitute your own host and build profiles.
+Build with the detected profile.
 
 ```sh
 conan build . --build=missing
 conan create . --build=missing
 ```
-
-Tests run by default. Add `-c tools.build:skip_test=True` to skip execution.
-
-Conan profiles select compilers, linkers, compiler caches, and sanitizer flags.
-Use separate host and build profiles when cross-compiling. Set `CONAN_HOME`
-before invoking Conan to select another cache.
 
 ## Use C++
 
