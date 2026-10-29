@@ -36,6 +36,15 @@ class SimdQuickHeap {
         sort_unstable_small(layer.data(), layer.size(), [](T a, T b) { return a > b; });
     }
 
+    std::size_t push_target(T t) const noexcept {
+        if constexpr ((Opts & opt_terminal_shortcut) != 0) {
+            if (pivots_.empty() || t < pivots_[pivots_.size() - 1]) {
+                return pivots_.size();
+            }
+        }
+        return push_position<T, Backend>(pivots_, t);
+    }
+
     [[gnu::noinline]] void partition() {
         const auto total_layers = pivots_.size() + 1;
 
@@ -87,7 +96,7 @@ public:
     bool empty() const noexcept { return size_ == 0; }
 
     void push(T t) {
-        const auto target_layer = push_position<T, Backend>(pivots_, t);
+        const auto target_layer = push_target(t);
 
         auto& layer = buckets_[target_layer];
 
