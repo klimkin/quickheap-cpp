@@ -117,8 +117,8 @@ Create Quickheap in the local Conan cache, then build this directory as its own
 application. Run commands from the repository root.
 
 ```sh
-conan create . -pr:h default -pr:b default -s:h compiler.cppstd=20 --build=missing
-conan build benchmark -pr:h default -pr:b default -s:h compiler.cppstd=20 --build=missing
+conan create . --build=missing
+conan build benchmark --build=missing
 benchmark/build/Release/quickheap_bench --min 10 --max 20 --step 2 \
     --repeat 3 --i64 > plot.csv
 ```

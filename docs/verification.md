@@ -10,11 +10,11 @@ Run commands from repository root. Replace `default` with your profile names or
 paths. Configure profiles as described in [build instructions](../README.md).
 
 ```sh
-conan build . -pr:h default -pr:b default -s:h compiler.cppstd=20 --build=missing
-conan create . -pr:h default -pr:b default -s:h compiler.cppstd=20 --build=missing
-conan create . -pr:h default -pr:b default -s:h compiler.cppstd=20 \
+conan build . --build=missing
+conan create . --build=missing
+conan create . \
     -o:h 'quickheap/*:shared=True' --build=missing
-conan build . -pr:h default -pr:b default -s:h compiler.cppstd=20 \
+conan build . \
     -s:h build_type=Debug -o:h 'quickheap/*:scalar=True' --build=missing
 ```
 

@@ -21,8 +21,8 @@ conan profile detect
 Build with the detected profile or substitute your own host and build profiles.
 
 ```sh
-conan build . -pr:h default -pr:b default -s:h compiler.cppstd=20 --build=missing
-conan create . -pr:h default -pr:b default -s:h compiler.cppstd=20 --build=missing
+conan build . --build=missing
+conan create . --build=missing
 ```
 
 Tests run by default. Add `-c tools.build:skip_test=True` to skip execution.
