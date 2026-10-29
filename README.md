@@ -104,28 +104,28 @@ implementations.
 
 | Heap | Algorithm | $2^{10}$ | $2^{15}$ | $2^{20}$ | $2^{25}$ | LLC misses |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| `std_priority_queue` | `std::priority_queue` binary heap | 35.7 | 109.1 | 94.7 | 193.8 | 30.278 |
-| `dary8` | 8-ary heap, hole sift | 15.1 | 36.6 | 40.7 | 395.7 | 9.763 |
-| `weak_heap` | Weak heap | 18.6 | 57.2 | 79.4 | 831.3 | 18.899 |
-| `radix_heap` | Radix heap, native | 27.5 | 58.4 | 37.9 | 41.4 | 1.633 |
-| `sequence_heap` | Sanders' sequence heap | 28.9 | 92.1 | 65.1 | 81.9 | 1.266 |
-| `s3q` | S3Q sample-sort queue | 15.7 | 38.0 | 26.4 | 35.0 | 1.851 |
-| `original_quickheap` | Original quickheap, Paredes & Navarro | 40.2 | 95.7 | 65.7 | 75.1 | 1.835 |
-| `scalar_quickheap` | Scalar quickheap | 36.4 | 106.3 | 65.2 | 83.3 | 2.984 |
-| `quickheap` | SimdQuickHeap, AVX2 | 15.6 | 35.8 | 44.9 | 26.2 | 1.616 |
+| `std_priority_queue` | `std::priority_queue` binary heap | 34.4 | 51.8 | 82.0 | 180.6 | 28.244 |
+| `dary8` | 8-ary heap, hole sift | 15.1 | 17.6 | 41.6 | 254.2 | 7.739 |
+| `weak_heap` | Weak heap | 18.4 | 27.8 | 69.5 | 425.6 | 14.389 |
+| `radix_heap` | Radix heap, native | 25.4 | 30.1 | 33.9 | 40.6 | 0.857 |
+| `sequence_heap` | Sanders' sequence heap | 28.0 | 45.1 | 63.3 | 80.7 | 0.332 |
+| `s3q` | S3Q sample-sort queue | 18.5 | 19.5 | 23.7 | 32.6 | 1.102 |
+| `original_quickheap` | Original quickheap, Paredes & Navarro | 40.4 | 48.5 | 59.3 | 72.1 | 0.638 |
+| `scalar_quickheap` | Scalar quickheap | 35.6 | 48.5 | 61.8 | 78.2 | 1.197 |
+| `quickheap` | SimdQuickHeap, AVX2 | 15.5 | 16.7 | 19.6 | 24.3 | 1.021 |
 | | | | | | | |
-| `custom_binary_heap` | Binary heap, swap sift | 18.5 | 56.8 | 230.8 | 1022.8 | 16.133 |
-| `dary4` | 4-ary heap, hole sift | 10.7 | 49.2 | 41.4 | 511.2 | 13.724 |
-| `dary16` | 16-ary heap, hole sift | 18.3 | 54.6 | 51.0 | 332.2 | 11.153 |
-| `custom_dary4` | 4-ary heap, swap sift | 13.0 | 51.8 | 65.4 | 568.7 | 20.546 |
-| `custom_dary8` | 8-ary heap, swap sift | 18.0 | 39.5 | 59.5 | 425.1 | 16.271 |
-| `boost_dary4` | Boost 4-ary heap | 16.3 | 56.3 | 55.7 | 550.4 | 19.216 |
-| `external_radix_heap` | Radix heap, `iwiwi/radix-heap` | 35.4 | 73.9 | 41.8 | 43.7 | 1.380 |
-| `blocked_quickheap` | Quickheap, linked 128-slot blocks | 359.9 | 174.3 | 115.4 | 176.6 | 9.370 |
-| `boost_fibonacci` | Boost Fibonacci heap | 66.8 | 307.8 | 610.9 | 1592.7\* | 53.059\* |
-| `boost_pairing` | Boost pairing heap | 421.6 | 252.9 | 1857.9 | 3022.8\* | 67.131\* |
-| `boost_binomial` | Boost binomial heap | 541.4 | 757.7 | 1372.8 | 2651.8\* | 48.141\* |
-| `boost_skew` | Boost skew heap | 56.5 | 277.6 | 2006.7 | 3163.7\* | 54.068\* |
+| `custom_binary_heap` | Binary heap, swap sift | 18.2 | 28.2 | 86.1 | 595.5 | 15.826 |
+| `dary4` | 4-ary heap, hole sift | 11.1 | 21.2 | 39.5 | 284.7 | 8.055 |
+| `dary16` | 16-ary heap, hole sift | 18.2 | 26.0 | 45.1 | 221.5 | 9.531 |
+| `custom_dary4` | 4-ary heap, swap sift | 13.4 | 24.0 | 62.4 | 339.2 | 11.214 |
+| `custom_dary8` | 8-ary heap, swap sift | 17.9 | 22.8 | 57.9 | 271.6 | 10.281 |
+| `boost_dary4` | Boost 4-ary heap | 16.1 | 27.9 | 56.5 | 343.8 | 13.093 |
+| `external_radix_heap` | Radix heap, `iwiwi/radix-heap` | 34.7 | 36.4 | 39.7 | 43.1 | 0.519 |
+| `blocked_quickheap` | Quickheap, linked 128-slot blocks | 65.6 | 85.4 | 106.5 | 153.0 | 6.056 |
+| `boost_fibonacci` | Boost Fibonacci heap | 60.5 | 118.3 | 495.1 | 1581.2\* | 62.352\* |
+| `boost_pairing` | Boost pairing heap | 123.5 | 218.0 | 807.3 | 2917.9\* | 101.229\* |
+| `boost_binomial` | Boost binomial heap | 246.8 | 382.9 | 857.0 | 2075.3\* | 62.431\* |
+| `boost_skew` | Boost skew heap | 56.9 | 126.2 | 486.5 | 2491.0\* | 68.490\* |
 
 Notes on the table:
 
@@ -138,13 +138,13 @@ Data types at $n = 2^{20}$, median of 5 trials:
 
 | Data type | Heap | ns/pair |
 | --- | --- | ---: |
-| `u32` | `quickheap` | 16.5 |
-| `u64` | `quickheap` | 20.8 |
-| `(u32,u32)` | `kv_quickheap` | 28.4 |
-| `(u64,u64)` | `kv_quickheap` | 36.6 |
+| `u32` | `quickheap` | 16.1 |
+| `u64` | `quickheap` | 19.7 |
+| `(u32,u32)` | `kv_quickheap` | 27.6 |
+| `(u64,u64)` | `kv_quickheap` | 35.1 |
 
-Measured 2026-10-27 on an Intel Core Ultra 9 285K, pinned to P-core 5, with
-Clang 24 `-O3 -mavx2 -mbmi -mpopcnt`. Other users' jobs shared the host.
+Measured 2026-10-29 on an Intel Core Ultra 9 285K, pinned to P-core 5, with
+Clang 24 `-O3 -mavx2 -mbmi -mpopcnt`. The host was otherwise idle.
 [benchmark/ALGORITHMS.md](benchmark/ALGORITHMS.md) reproduces the plot and
 tables. [docs/cpp-vs-rust.md](docs/cpp-vs-rust.md) compares this port with
 the Rust crate on the same algorithm.
