@@ -33,7 +33,11 @@ class SimdQuickHeap {
     std::size_t size_ = 0;
 
     static void sort_descending(Vec<T>& layer) noexcept {
-        sort_unstable_small(layer.data(), layer.size(), [](T a, T b) { return a > b; });
+        if constexpr ((Opts & opt_sort_network) != 0) {
+            sort_terminal_descending(layer.data(), layer.size());
+        } else {
+            sort_unstable_small(layer.data(), layer.size(), [](T a, T b) { return a > b; });
+        }
     }
 
     std::size_t push_target(T t) const noexcept {
