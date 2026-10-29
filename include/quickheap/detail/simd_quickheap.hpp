@@ -14,10 +14,16 @@
 
 namespace quickheap::detail {
 
+inline constexpr unsigned opt_terminal_shortcut = 1;
+inline constexpr unsigned opt_cold_terminal = 2;
+inline constexpr unsigned opt_one_count = 4;
+inline constexpr unsigned opt_scan_early_exit = 8;
+inline constexpr unsigned opt_sort_network = 16;
+
 // Mirrors `SimdQuickHeap` from the Rust crate's lib.rs. `pivots` decrease; `buckets[i]`
 // holds elements between pivots i-1 and i. The terminal layer `buckets[pivots.size()]`
 // stays sorted in decreasing order whenever it holds at most N elements.
-template <class T, class Backend = DefaultBackend>
+template <class T, class Backend = DefaultBackend, unsigned Opts = 0>
 class SimdQuickHeap {
     static constexpr std::size_t N = 16;
     static constexpr std::size_t L = SimdElem<T, Backend>::L;
