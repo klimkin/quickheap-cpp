@@ -42,7 +42,7 @@ class SimdQuickHeap {
                 return pivots_.size();
             }
         }
-        return push_position<T, Backend>(pivots_, t);
+        return push_position<T, Backend, (Opts & opt_scan_early_exit) != 0>(pivots_, t);
     }
 
     [[gnu::noinline]] void partition() {

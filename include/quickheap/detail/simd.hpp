@@ -297,7 +297,7 @@ struct SimdElem : Lanes<T, Backend> {
 // `partition_point(|p| t < p)` over the decreasing pivots. Up to 64 pivots it uses
 // full-register loads that may read past `len`; the heap keeps 2 * L spare slots so those
 // reads stay inside the allocation.
-template <class T, class Backend>
+template <class T, class Backend, bool EarlyExit = false>
 std::size_t push_position(const Vec<T>& pivots, T t) noexcept {
     using S = SimdElem<T, Backend>;
     const auto len = pivots.size();
@@ -306,7 +306,13 @@ std::size_t push_position(const Vec<T>& pivots, T t) noexcept {
         std::size_t target_layer = 0;
         for (std::size_t i = 0; i < len; i += S::L) {
             const auto vals = S::load(pivots.data() + i);
-            target_layer += static_cast<std::size_t>(std::countr_one(S::lt_bitmask(t_simd, vals)));
+            const auto c = static_cast<std::size_t>(std::countr_one(S::lt_bitmask(t_simd, vals)));
+            target_layer += c;
+            if constexpr (EarlyExit) {
+                if (c < S::L) {
+                    break;
+                }
+            }
         }
         return std::min(target_layer, len);
     }
