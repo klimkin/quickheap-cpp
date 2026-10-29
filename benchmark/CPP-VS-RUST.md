@@ -74,6 +74,19 @@ of process medians. [PROTOCOL.md](PROTOCOL.md) defines the fixture format,
 timer boundaries, and provenance fields. [evals/README.md](evals/README.md)
 defines report grouping.
 
+[`evals/cpp_vs_rust_table.py`](evals/cpp_vs_rust_table.py) renders the
+tables in the report from one or more `controlled-operations` directories.
+Each round gives one paired value per cell, the mean over seeds of
+log(C++ / Rust). The script reports the Hodges-Lehmann estimate and the
+exact Wilcoxon 90% interval over rounds. With several directories, a later
+run replaces every cell it measured. `--unresolved 1` prints the `CELLS`
+list of cells whose interval half-width exceeds 1%:
+
+```sh
+CELLS=$(python3 benchmark/evals/cpp_vs_rust_table.py \
+    build/cpp-vs-rust/controlled-operations --unresolved 1)
+```
+
 The timed region excludes fixture parsing, queue construction, setup,
 validation, and destruction on both sides. Both runners consume identical
 fixture bytes, so input distribution and order cannot explain a gap.
