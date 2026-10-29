@@ -16,3 +16,10 @@ target_link_libraries(quickheap_benchmark PRIVATE quickheap Catch2::Catch2WithMa
 
 add_executable(quickheap_trace trace.cpp)
 target_link_libraries(quickheap_trace PRIVATE quickheap)
+
+add_executable(quickheap_variants_tests variants_test.cpp)
+target_link_libraries(quickheap_variants_tests PRIVATE quickheap Catch2::Catch2WithMain)
+if(NOT QUICKHEAP_SCALAR AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
+    target_compile_options(quickheap_variants_tests PRIVATE -mavx2 -mbmi -mpopcnt)
+endif()
+catch_discover_tests(quickheap_variants_tests)
