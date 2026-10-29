@@ -31,6 +31,8 @@ class QuickHeapBenchmarkConan(ConanFile):
         "verify.py",
         "cpu.py",
         "cpu_test.py",
+        "repeat_plan.py",
+        "repeat_plan_test.py",
         "measure_parity.py",
         "measure_parity_test.py",
         "verify_pair.py",

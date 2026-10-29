@@ -56,7 +56,7 @@ Initial reservation defaults to backend construction and natural growth. Require
 
 ### Schedule
 
-Defaults select active workloads `HeapSort`, `MonotoneConstantSize`, `MonotoneWiggle`, and `RandomWiggle`. Explicit selection may include dormant workloads. Sizes span powers 10 through 25 with exponent step 1. Trials use one warmup and three measured repeats. Cutoff is disabled to preserve identical size sets. Explicit runner options remain result provenance.
+Defaults select active workloads `HeapSort`, `MonotoneConstantSize`, `MonotoneWiggle`, and `RandomWiggle`. Explicit selection may include dormant workloads. Sizes span powers 10 through 25 with exponent step 1. Runner defaults use one warmup and three measured repeats. Comparison launcher plans repeats and warmups per fixture from pilot trials; both languages share each fixture's schedule. Cutoff is disabled to preserve identical size sets. Explicit runner options remain result provenance.
 
 `ops` counts push/pop pairs. Actual queue calls equal `2 * ops`. `opslogn` equals `ops * log2(n)`. Comparison normalization applies workload factor once.
 

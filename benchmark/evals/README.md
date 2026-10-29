@@ -28,7 +28,7 @@ Different C++ compiler builds remain distinct. Short build IDs label tables and 
 `ops` counts push/pop pairs and includes workload factor. Raw storage and diagnostic metrics retain original units.
 `n=1` cannot use `opslogn` normalization and fails explicitly.
 
-Report rejects mixed profiles, unattributed historical rows, absent build identity, corrupted controlled fixture identities, duplicate or missing repeats, and inconsistent schedules or policies.
+Report rejects mixed profiles, unattributed historical rows, absent build identity, corrupted controlled fixture identities, duplicate or missing repeats, schedules that differ within one fixture or original run, and inconsistent policies.
 Count-only rows omit zero placeholder timing. Unavailable metric fields remain absent.
 Unattributed graph and legacy diagnostic CSVs require separate plots through `plot.py`. Those results cannot enter paired reports.
 

@@ -27,18 +27,18 @@ class ReportContract(unittest.TestCase):
         self.fixtures.mkdir()
         self.protocol = {"protocol": "quickheap-cpp-v1"}
 
-    def rows(self, workload="HeapSort", n=8, heap="heap", build=CPP_BUILD, backend="scalar", comparison=False):
+    def rows(self, workload="HeapSort", n=8, heap="heap", build=CPP_BUILD, backend="scalar", comparison=False, repeats=3):
         setup = 2 * (n + 50) if workload in ("MonotoneConstantSize", "RandomConstantSize") else 0
         timed = n * report.FACTORS[workload]
         raw = f"QHB1 i64 {workload} {n}\nsetup {setup}\n".encode() + b"1 " * setup + f"\ntimed {timed}\n".encode() + b"1 " * timed + b"\n"
         (self.fixtures / f"{workload}.qhf").write_bytes(raw)
         rows = []
-        for repeat, multiplier in enumerate((5, 7, 9)):
+        for repeat, multiplier in enumerate(range(5, 5 + 2 * repeats, 2)):
             row = {"elem": "i64", "heap": heap, "n": str(n), "workload": workload,
                    "ops": str(timed), "repeat": str(repeat), "nanos": str(timed * 3 * multiplier),
                    "protocol": self.protocol["protocol"], "build": build, "backend": backend,
                    "fixture_digest": report.fixture_digest(raw), "reservation": "backend-default",
-                   "timer": "workload-only-raii", "repeats": "3", "warmup": "1",
+                   "timer": "workload-only-raii", "repeats": str(repeats), "warmup": "1",
                    "push_comparisons": "", "pop_comparisons": ""}
             if comparison:
                 row.update(nanos="0", push_comparisons=str(timed * 3 * 2), pop_comparisons=str(timed * 3 * 5))
@@ -122,6 +122,20 @@ class ReportContract(unittest.TestCase):
                 invalid[-1]["warmup"] = "2"
             with self.assertRaises(ValueError):
                 self.read(invalid)
+
+    def test_schedule_may_differ_between_fixtures_not_languages(self):
+        heapsort = self.rows() + self.rows(build=RUST_BUILD)
+        wiggle = self.rows("RandomWiggle", repeats=5) + self.rows("RandomWiggle", build=RUST_BUILD, repeats=5)
+        for row in wiggle:
+            row["warmup"] = "40"
+        summaries = self.read(heapsort + wiggle)
+        self.assertEqual({(s.identity.language, s.identity.workload, s.identity.repeats, s.identity.warmup) for s in summaries},
+                         {(language, "HeapSort", 3, 1) for language in ("C++", "Rust")} |
+                         {(language, "RandomWiggle", 5, 40) for language in ("C++", "Rust")})
+        for row in wiggle[5:]:
+            row["warmup"] = "41"
+        with self.assertRaisesRegex(ValueError, "inconsistent repeats or warmup"):
+            self.read(heapsort + wiggle)
 
     def test_corrupted_fixture_bytes_reject(self):
         rows = self.rows()
