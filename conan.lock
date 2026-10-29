@@ -1,8 +1,7 @@
 {
     "version": "0.5",
     "requires": [
-        "highway/1.4.0#06801f8cfa0706233d96513e899abd7f%1792691169.673",
-        "catch2/3.16.0#8a740288e903d02e17bf3e4746575e0c%1792697252.796"
+        "catch2/3.16.1#6e8dfa6318072b088fc5cce06628d487%1793250924.288"
     ],
     "build_requires": [
         "ninja/1.13.0#platform",

@@ -1,10 +1,9 @@
 {
     "version": "0.5",
     "requires": [
-        "quickheap/0.2.0#f94a4d26c626aa52da4ff86a32027e95%1793064785.7869499",
-        "highway/1.4.0#96e316cc0703d31a89fa299e24228050%1792709136.1583042",
-        "catch2/3.16.0#95f400ca2fba9f0c5ce5aea6e6fe0055%1792709136.1584716",
-        "boost/1.90.0#d762a507a00f26eb3bb10805ef8a48ba%1792709136.158619"
+        "quickheap/0.2.0#0513aff06052a0842b43d80beed5f47a%1793251049.680877",
+        "highway/1.4.0#06801f8cfa0706233d96513e899abd7f%1792691169.673",
+        "catch2/3.16.1#6e8dfa6318072b088fc5cce06628d487%1793250924.288"
     ],
     "build_requires": [
         "ninja/1.13.0#platform",

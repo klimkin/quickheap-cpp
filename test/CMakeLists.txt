@@ -1,4 +1,4 @@
-find_package(Catch2 3.16.0 EXACT REQUIRED CONFIG)
+find_package(Catch2 3.16 REQUIRED CONFIG)
 add_executable(quickheap_tests quickheap_test.cpp c_api_test.c)
 target_link_libraries(quickheap_tests PRIVATE quickheap Catch2::Catch2)
 include(Catch)

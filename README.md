@@ -10,7 +10,7 @@ AVX2 CPU. `-o quickheap/*:scalar=True` builds portable scalar kernels.
 
 Requires Conan 2, CMake 4, Ninja, and a C++20 compiler. Public C++ headers
 support C++17 consumers. Conan profiles select build standard. Conan supplies
-Catch2 3.16.0 for library tests.
+Catch2 3.16 or newer for library tests.
 
 If no Conan profile is configured, detect the installed compiler first.
 
