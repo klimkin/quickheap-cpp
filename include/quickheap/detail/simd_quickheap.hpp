@@ -83,6 +83,13 @@ class SimdQuickHeap {
         }
     }
 
+    [[gnu::noinline]] void refill_terminal() {
+        while (buckets_[pivots_.size()].size() > N) {
+            partition();
+        }
+        sort_descending(buckets_[pivots_.size()]);
+    }
+
 public:
     std::size_t capacity() const noexcept {
         std::size_t total = 0;
@@ -118,10 +125,14 @@ public:
         }
 
         if (buckets_[pivots_.size()].size() > N) {
-            while (buckets_[pivots_.size()].size() > N) {
-                partition();
+            if constexpr ((Opts & opt_cold_terminal) != 0) {
+                refill_terminal();
+            } else {
+                while (buckets_[pivots_.size()].size() > N) {
+                    partition();
+                }
+                sort_descending(buckets_[pivots_.size()]);
             }
-            sort_descending(buckets_[pivots_.size()]);
         }
 
         auto& layer = buckets_[pivots_.size()];
