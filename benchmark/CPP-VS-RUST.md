@@ -38,14 +38,24 @@ configuration. On x86-64 the CMake build adds
    and $2^{16}$ with `i64` keys.
 4. Replays each fixture untimed through both runners with `--verify-only` and
    requires byte-identical pop traces (`cmp`).
-5. Runs `RUNS` (default 7) process rounds. Each round times every fixture on
-   both sides, alternating which side runs first. Each process runs 1 warmup
-   and 3 timed trials.
-6. Writes per-round reports and an aggregate under
+5. Times one pilot process per side and fixture: 1 warmup, then `PILOT`
+   (default 15) trials. [`repeat_plan.py`](repeat_plan.py) takes each side's
+   median and its bootstrap relative standard error, and picks the trial
+   count that brings both errors to `PRECISION` (default 0.005). The count
+   stays between 5 and 1000 and adds no trials past 2 s of timed work.
+   Warmup covers at least 10 ms. Both sides share the plan, recorded in
+   `repeats.tsv`. `REPEAT=N` instead fixes N trials and `WARMUP` (default 1)
+   warmups for every fixture.
+6. Runs `RUNS` (default 7) process rounds. Each round times every fixture on
+   both sides with the fixture's plan, alternating which side runs first.
+7. Writes per-round reports and an aggregate under
    `controlled-operations/report/`.
 
 Every measured process runs under `taskset -c $BENCH_CPU`. The script rejects
 a CPU that the kernel does not report as a performance core.
+
+`CELLS=HeapSort:10,RandomWiggle:16` limits steps 3 to 6 to the listed workload
+and size exponent pairs, every seed of each. Use it to rerun noisy cells.
 
 ## Read the results
 
@@ -54,6 +64,7 @@ a CPU that the kernel does not report as a performance core.
 | `status.tsv` | Pass or fail per phase |
 | `controlled-operations/report/` | Aggregate CSV, Markdown, LaTeX, SVG, PDF, manifest |
 | `controlled-operations/process-N/` | Raw C++ and Rust CSVs per round |
+| `controlled-operations/repeats.tsv`, `pilot/` | Repeat and warmup per fixture, and the pilot CSVs behind them |
 | `logs/` | Every command, its exit status, stdout, and stderr |
 | `cpp.revision`, `rust.revision`, `*.diff` | Source state of both checkouts |
 | `cpu.json`, `cpu.txt` | Core identity and `lscpu` |

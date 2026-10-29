@@ -70,7 +70,9 @@ Set `MIN`, `MAX`, `STEP`, or `ELEM` to change controlled inputs. Controlled runs
 share fixture bytes, compare full correctness traces, and alternate runner order
 per fixture and process. `RUNS` defaults to seven independent process runs.
 `SEEDS=1363692610,7,19` selects distinct controlled fixture streams; default seed
-preserves existing fixture bytes. `REPEAT` and `WARMUP` default to 3 and 1.
+preserves existing fixture bytes. `REPEAT=auto` (default) plans repeats and
+warmups per fixture from `PILOT` trials to `PRECISION`; numeric `REPEAT` uses
+`WARMUP` (default 1). `CELLS=HeapSort:10` limits runs to listed cells.
 Original profile uses every
 exponent between `MIN` and `MAX`, fixed three repeats, one warmup, and cutoffs.
 Original Rust runs all enabled registrations; C++ selects chosen counterpart.

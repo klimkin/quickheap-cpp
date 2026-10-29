@@ -19,12 +19,18 @@ Environment:
   ELEM           i32 or i64, default i64
   WORKLOADS      Controlled workloads, comma-separated; default
                  HeapSort,MonotoneConstantSize,MonotoneWiggle,RandomWiggle
-  REPEAT WARMUP  Controlled trials, defaults 3 1
+  REPEAT         Controlled trials per process, auto or a number, default auto
+  WARMUP         Controlled warmups with numeric REPEAT, default 1
+  PRECISION      Auto target relative standard error of each median, default 0.005
+  PILOT          Auto pilot trials per side and fixture, default 15
+  CELLS          Controlled Workload:exponent subset, comma-separated; default all
   BENCH_CPU      One kernel-identified P core, default first available
   RUNS           Independent alternating process runs, default 7
   SEEDS          Controlled uint64 decimal seeds, comma-separated; default 1363692610
 
 Requires Bash, Python with matplotlib, Conan profiles, and Rust toolchain.
+Auto REPEAT times one pilot process per side and fixture, then runs every
+process with the repeat and warmup that repeat_plan.py chooses for that fixture.
 Original retains three trials, one warmup, contiguous sizes, and cutoffs.
 Rust original runs all enabled registrations; C++ selects PAIR counterpart.
 Reports retain Rust source identity, including declared upstream repairs.
@@ -67,13 +73,40 @@ for workload in "${workloads[@]}"; do
     esac
 done
 minimum=${MIN:-10}; maximum=${MAX:-16}; step=${STEP:-2}
-repeat=${REPEAT:-3}; warmup=${WARMUP:-1}; runs=${RUNS:-7}
-for value in "$minimum" "$maximum" "$step" "$repeat" "$warmup" "$runs"; do
+repeat=${REPEAT:-auto}; warmup=${WARMUP:-1}; runs=${RUNS:-7}; precision=${PRECISION:-0.005}; pilot=${PILOT:-15}
+if [[ "$repeat" == auto ]]; then
+    [[ -z ${WARMUP+set} ]] || fail 'WARMUP requires numeric REPEAT'
+    [[ "$precision" =~ ^0?\.[0-9]*[1-9][0-9]*$ ]] || fail 'PRECISION requires a decimal fraction between 0 and 1'
+    integers=("$pilot")
+else
+    [[ -z ${PRECISION+set}${PILOT+set} ]] || fail 'PRECISION and PILOT require REPEAT=auto'
+    integers=("$repeat" "$warmup")
+fi
+for value in "$minimum" "$maximum" "$step" "$runs" "${integers[@]}"; do
     [[ "$value" =~ ^[0-9]{1,9}$ ]] || fail "invalid nonnegative integer $value"
 done
-minimum=$((10#$minimum)); maximum=$((10#$maximum)); step=$((10#$step))
-repeat=$((10#$repeat)); warmup=$((10#$warmup)); runs=$((10#$runs))
-(( minimum >= 1 && minimum <= maximum && maximum <= 25 && step > 0 && repeat > 0 && runs > 0 )) || fail 'require 1 <= MIN <= MAX <= 25, STEP > 0, REPEAT > 0, RUNS > 0'
+minimum=$((10#$minimum)); maximum=$((10#$maximum)); step=$((10#$step)); runs=$((10#$runs))
+(( minimum >= 1 && minimum <= maximum && maximum <= 25 && step > 0 && runs > 0 )) || fail 'require 1 <= MIN <= MAX <= 25, STEP > 0, RUNS > 0'
+if [[ "$repeat" == auto ]]; then
+    pilot=$((10#$pilot)); (( pilot >= 3 )) || fail 'PILOT requires at least 3 trials'
+else
+    repeat=$((10#$repeat)); warmup=$((10#$warmup)); (( repeat > 0 )) || fail 'REPEAT requires auto or a positive integer'
+fi
+exponents=()
+for (( exponent=minimum; exponent<=maximum; exponent+=step )); do exponents+=("$exponent"); done
+if [[ ${exponents[${#exponents[@]}-1]} != "$maximum" ]]; then exponents+=("$maximum"); fi
+declare -A cells=()
+if [[ -n ${CELLS:-} ]]; then
+    IFS=, read -r -a entries <<< "$CELLS"
+    for entry in "${entries[@]}"; do
+        [[ "$entry" =~ ^([A-Za-z]+):([0-9]{1,9})$ ]] || fail "CELLS entry $entry requires Workload:exponent"
+        workload=${BASH_REMATCH[1]}; exponent=$((10#${BASH_REMATCH[2]}))
+        [[ -n ${seen_workloads[$workload]:-} ]] || fail "CELLS workload $workload is not in WORKLOADS"
+        [[ " ${exponents[*]} " == *" $exponent "* ]] || fail "CELLS exponent $exponent is not in ${exponents[*]}"
+        [[ -z ${cells[$workload:$exponent]:-} ]] || fail "duplicate CELLS entry $entry"
+        cells[$workload:$exponent]=1
+    done
+fi
 for tool in python3 conan cargo git cmp taskset; do command -v "$tool" >/dev/null || fail "missing $tool"; done
 python3 -c 'import matplotlib' || fail 'Python requires matplotlib for reports'
 bench_cpu=$(python3 "$script_dir/cpu.py" --select "${BENCH_CPU:-auto}") || exit 2
@@ -133,12 +166,18 @@ for name in original-sources.json original-repairs.json; do
     fi
 done
 if command -v lscpu >/dev/null; then lscpu > "$output/cpu.txt"; fi
-python3 - "$output/run.json" "$profile" "$pair" "$elem" "$minimum" "$maximum" "$step" "$repeat" "$warmup" "$runs" "$seed_values" <<'PY'
+python3 - "$output/run.json" "$profile" "$pair" "$elem" "$minimum" "$maximum" "$step" "$repeat" "$warmup" "$runs" "$seed_values" \
+    "$precision" "$pilot" "${CELLS:-}" <<'PY'
 import json, os, platform, sys
 from datetime import datetime, timezone
 from pathlib import Path
-keys = ("profile", "pair", "elem", "min", "max", "step", "repeats", "warmup", "process_runs", "seeds")
+keys = ("profile", "pair", "elem", "min", "max", "step", "repeats", "warmup", "process_runs", "seeds", "precision", "pilot")
 record = dict(zip(keys, sys.argv[2:]))
+if record["repeats"] == "auto":
+    record["warmup"] = "auto"
+else:
+    del record["precision"], record["pilot"]
+record["cells"] = sys.argv[-1].split(",") if sys.argv[-1] else None
 record.update(started=datetime.now(timezone.utc).isoformat(), platform=platform.platform(),
               cpu_count=os.cpu_count(), load_average=os.getloadavg() if hasattr(os, "getloadavg") else None)
 names = {"RUSTC", "RUSTFLAGS", "CARGO_ENCODED_RUSTFLAGS", "CARGO_BUILD_TARGET", "CARGO_BUILD_RUSTFLAGS"}
@@ -233,11 +272,14 @@ if len(paths) != 1:
 print(paths.pop())
 PY
     ) || return
-    local exponents=() stems=() fixtures=() reports=()
-    for (( exponent=minimum; exponent<=maximum; exponent+=step )); do exponents+=("$exponent"); done
-    if [[ ${exponents[${#exponents[@]}-1]} != "$maximum" ]]; then exponents+=("$maximum"); fi
+    local stems=() fixtures=() stem_repeats=() stem_warmups=() reports=() plan_repeat plan_warmup
+    if [[ "$repeat" == auto ]]; then
+        mkdir -- "$directory/pilot" || return
+        printf 'stem\trepeat\twarmup\tpilot_trials\tcpp_median_ns\tcpp_rel_se\trust_median_ns\trust_rel_se\n' > "$directory/repeats.tsv"
+    fi
     for workload in "${workloads[@]}"; do
         for exponent in "${exponents[@]}"; do
+            if (( ${#cells[@]} )) && [[ -z ${cells[$workload:$exponent]:-} ]]; then continue; fi
             for seed in "${seeds[@]}"; do
                 stem="$workload-$elem-$exponent-seed-$seed"
                 fixture="$directory/fixtures/$stem.qhf"
@@ -249,6 +291,19 @@ PY
                     --fixture "$fixture" --heap "$rust_heap" --verify-only || return
                 run "verify-match-$stem" "$output/logs/verify-match-$stem.stdout.log" \
                     cmp "$directory/$stem.cpp.trace" "$directory/$stem.rust.trace" || return
+                if [[ "$repeat" == auto ]]; then
+                    run "pilot-cpp-$stem" "$directory/pilot/$stem.cpp.csv" taskset -c "$bench_cpu" "$cpp_bench" --profile controlled-operations \
+                        --fixture "$fixture" --heap "$cpp_heap" "${cpp_backend[@]}" --repeat "$pilot" --warmup 1 || return
+                    run "pilot-rust-$stem" "$directory/pilot/$stem.rust.csv" taskset -c "$bench_cpu" "$rust_bench" --profile controlled-operations \
+                        --fixture "$fixture" --heap "$rust_heap" --repeat "$pilot" --warmup 1 || return
+                    run "plan-$stem" "$directory/pilot/$stem.plan.tsv" python3 "$script_dir/repeat_plan.py" \
+                        --cpp "$directory/pilot/$stem.cpp.csv" --rust "$directory/pilot/$stem.rust.csv" --precision "$precision" || return
+                    { printf '%s\t' "$stem"; cat -- "$directory/pilot/$stem.plan.tsv"; } >> "$directory/repeats.tsv"
+                    IFS=$'\t' read -r plan_repeat plan_warmup _ < "$directory/pilot/$stem.plan.tsv"
+                    stem_repeats+=("$plan_repeat"); stem_warmups+=("$plan_warmup")
+                else
+                    stem_repeats+=("$repeat"); stem_warmups+=("$warmup")
+                fi
                 stems+=("$stem")
                 fixtures+=("$fixture")
             done
@@ -261,9 +316,9 @@ PY
         for (( index=0; index<${#stems[@]}; ++index )); do
             stem=${stems[index]}; fixture=${fixtures[index]}
             local cpp_command=(taskset -c "$bench_cpu" "$cpp_bench" --profile controlled-operations --fixture "$fixture"
-                --heap "$cpp_heap" "${cpp_backend[@]}" --repeat "$repeat" --warmup "$warmup")
+                --heap "$cpp_heap" "${cpp_backend[@]}" --repeat "${stem_repeats[index]}" --warmup "${stem_warmups[index]}")
             local rust_command=(taskset -c "$bench_cpu" "$rust_bench" --profile controlled-operations --fixture "$fixture"
-                --heap "$rust_heap" --repeat "$repeat" --warmup "$warmup")
+                --heap "$rust_heap" --repeat "${stem_repeats[index]}" --warmup "${stem_warmups[index]}")
             if (( (process + index) % 2 == 0 )); then
                 run "controlled-cpp-$stem-$process" "$trial/$stem.cpp.csv" "${cpp_command[@]}" || return
                 run "controlled-rust-$stem-$process" "$trial/$stem.rust.csv" "${rust_command[@]}" || return
