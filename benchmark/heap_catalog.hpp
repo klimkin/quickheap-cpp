@@ -70,20 +70,25 @@ inline constexpr std::array base_queue_catalog = {
 #endif
 };
 
-// Opts bits are quickheap::detail::opt_*. Bit 32 is read by no code: quickheap_aa is a
-// separate instantiation identical to Opts 0, the A/A row that measures noise between variants.
+inline constexpr unsigned a1 = quickheap::detail::opt_terminal_shortcut;
+inline constexpr unsigned a2 = quickheap::detail::opt_cold_terminal;
+inline constexpr unsigned a3 = quickheap::detail::opt_one_count;
+inline constexpr unsigned a4 = quickheap::detail::opt_scan_early_exit;
+inline constexpr unsigned a5 = quickheap::detail::opt_sort_network;
+inline constexpr unsigned aa_unread_bit_twin_of_quickheap = 32;
+
 struct QuickHeapVariant { std::string_view name; unsigned opts; };
 inline constexpr std::array quickheap_variants = {
-    QuickHeapVariant{"quickheap_a1", 1},
-    QuickHeapVariant{"quickheap_a2", 2},
-    QuickHeapVariant{"quickheap_a3", 4},
-    QuickHeapVariant{"quickheap_a4", 8},
-    QuickHeapVariant{"quickheap_a5", 16},
-    QuickHeapVariant{"quickheap_a12", 3},
-    QuickHeapVariant{"quickheap_a123", 7},
-    QuickHeapVariant{"quickheap_a1234", 15},
-    QuickHeapVariant{"quickheap_a12345", 31},
-    QuickHeapVariant{"quickheap_aa", 32},
+    QuickHeapVariant{"quickheap_a1", a1},
+    QuickHeapVariant{"quickheap_a2", a2},
+    QuickHeapVariant{"quickheap_a3", a3},
+    QuickHeapVariant{"quickheap_a4", a4},
+    QuickHeapVariant{"quickheap_a5", a5},
+    QuickHeapVariant{"quickheap_a12", a1 | a2},
+    QuickHeapVariant{"quickheap_a123", a1 | a2 | a3},
+    QuickHeapVariant{"quickheap_a1234", a1 | a2 | a3 | a4},
+    QuickHeapVariant{"quickheap_a12345", a1 | a2 | a3 | a4 | a5},
+    QuickHeapVariant{"quickheap_aa", aa_unread_bit_twin_of_quickheap},
 };
 
 constexpr bool quickheap_variant(QueueKind kind) { return kind >= QueueKind::FirstQuickHeapVariant; }
