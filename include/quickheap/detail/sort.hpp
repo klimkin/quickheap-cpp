@@ -62,9 +62,6 @@ std::size_t partition_point(const T* v, std::size_t len, Pred pred) noexcept {
     return base + static_cast<std::size_t>(pred(v[base]));
 }
 
-
-// Mirrors `sort_terminal_descending` from the Rust crate (commit 9f0428a): above 8 keys, a
-// 16-wide bitonic network padded with MAX sorts without data-dependent branches.
 template <class T>
 [[gnu::noinline]] void sort_terminal_descending(T* layer, std::size_t n) noexcept {
     constexpr std::size_t W = 16;
