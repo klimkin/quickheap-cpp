@@ -23,8 +23,8 @@ workloads=MonotoneConstantSize,RandomConstantSize,WorstCaseDescending,MostlyPush
     taskset -c "$cpu" "$bench" --list
 } > "$output/machine.txt"
 for (( pass = 1; pass <= passes; pass++ )); do
-    echo "$(date -u +%FT%TZ) pass-$pass" >&2
+    echo "$(date -u +%FT%TZ) pass-$pass $(cut -d" " -f1-3 /proc/loadavg)" | tee -a "$output/load.txt" >&2
     taskset -c "$cpu" "$bench" --workload "$workloads" --perf --i32 --i64 \
-        --min "$min" --max "$max" --step 2 --heap "$heaps" --repeat 1 > "$output/pass-$pass.csv"
+        --min "$min" --max "$max" --step 2 --heap "$heaps" --repeat 3 > "$output/pass-$pass.csv"
 done
 echo "$(date -u +%FT%TZ) done" >&2
