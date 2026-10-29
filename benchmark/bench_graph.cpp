@@ -172,7 +172,8 @@ void run_heaps(const Workload &workload, const Graph &graph,
                const std::filesystem::path &path, std::string_view name,
                const Options &options) {
     for (const auto &heap : queue_catalog) {
-        if (!key_only_queue(heap.kind) || (!options.heap.empty() && options.heap != heap.name)) continue;
+        if (!key_only_queue(heap.kind) || (options.heap.empty() && quickheap_variant(heap.kind)) ||
+            (!options.heap.empty() && options.heap != heap.name)) continue;
         const bool zero_weight = [&] {
             for (std::size_t id = 0; id < graph.edge_count(); ++id)
                 if (graph.edge(static_cast<std::uint32_t>(id)).weight == 0) return true;

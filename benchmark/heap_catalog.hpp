@@ -23,6 +23,7 @@ enum class QueueKind {
 #ifdef QUICKHEAP_BENCH_EXTERNAL
     Sequence, S3Q, Original, ExternalRadix,
 #endif
+    FirstQuickHeapVariant,
 };
 
 struct QueueInfo {
@@ -33,7 +34,7 @@ struct QueueInfo {
     bool monotone;
 };
 
-inline constexpr std::array queue_catalog = {
+inline constexpr std::array base_queue_catalog = {
     QueueInfo{QueueKind::QuickHeap, "quickheap", true, false, false},
     QueueInfo{QueueKind::StdPriorityQueue, "std_priority_queue", false, false, false},
     QueueInfo{QueueKind::KvQuickHeap, "kv_quickheap", true, false, false},
@@ -69,9 +70,44 @@ inline constexpr std::array queue_catalog = {
 #endif
 };
 
+// Opts bits are quickheap::detail::opt_*. Bit 32 is read by no code: quickheap_aa is a
+// separate instantiation identical to Opts 0, the A/A row that measures noise between variants.
+struct QuickHeapVariant { std::string_view name; unsigned opts; };
+inline constexpr std::array quickheap_variants = {
+    QuickHeapVariant{"quickheap_a1", 1},
+    QuickHeapVariant{"quickheap_a2", 2},
+    QuickHeapVariant{"quickheap_a3", 4},
+    QuickHeapVariant{"quickheap_a4", 8},
+    QuickHeapVariant{"quickheap_a5", 16},
+    QuickHeapVariant{"quickheap_a12", 3},
+    QuickHeapVariant{"quickheap_a123", 7},
+    QuickHeapVariant{"quickheap_a1234", 15},
+    QuickHeapVariant{"quickheap_a12345", 31},
+    QuickHeapVariant{"quickheap_aa", 32},
+};
+
+constexpr bool quickheap_variant(QueueKind kind) { return kind >= QueueKind::FirstQuickHeapVariant; }
+
+inline constexpr auto queue_catalog = [] {
+    std::array<QueueInfo, base_queue_catalog.size() + quickheap_variants.size()> catalog{};
+    std::copy(base_queue_catalog.begin(), base_queue_catalog.end(), catalog.begin());
+    for (std::size_t i = 0; i < quickheap_variants.size(); ++i) {
+        catalog[base_queue_catalog.size() + i] = QueueInfo{
+            static_cast<QueueKind>(static_cast<std::size_t>(QueueKind::FirstQuickHeapVariant) + i),
+            quickheap_variants[i].name, true, false, false};
+    }
+    return catalog;
+}();
+
 constexpr bool monotone_workload(Workload workload) {
     return workload == Workload::HeapSort || workload == Workload::MonotoneConstantSize ||
            workload == Workload::MonotoneWiggle || workload == Workload::GeometricMonotoneWiggle;
+}
+
+template <typename T, typename Visitor, std::size_t... I>
+void visit_quickheap_variant(QueueKind kind, Visitor &visit, std::index_sequence<I...>) {
+    const auto index = static_cast<std::size_t>(kind) - static_cast<std::size_t>(QueueKind::FirstQuickHeapVariant);
+    static_cast<void>(((index == I && (visit.template operator()<KeyQuickHeap<T, quickheap_variants[I].opts>>(), true)) || ...));
 }
 
 template <typename T, bool Count, typename Visitor>
@@ -110,6 +146,7 @@ void visit_queue(QueueKind kind, Visitor &&visit) {
     case QueueKind::Original: visit.template operator()<OriginalQuickHeap<T>>(); break;
     case QueueKind::ExternalRadix: visit.template operator()<ExternalRadixHeap<T>>(); break;
 #endif
+    default: visit_quickheap_variant<T>(kind, visit, std::make_index_sequence<quickheap_variants.size()>{});
     }
 }
 

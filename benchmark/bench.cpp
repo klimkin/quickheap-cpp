@@ -187,7 +187,7 @@ Options parse(int argc, char **argv) {
     }
     if (options.selected_heaps.empty()) {
         for (const auto &entry : queue_catalog) {
-            if ((!options.memory || entry.exact_capacity) &&
+            if (!quickheap_variant(entry.kind) && (!options.memory || entry.exact_capacity) &&
                 (!options.comparisons || entry.exact_comparisons))
                 options.selected_heaps.push_back(entry.kind);
         }
@@ -319,8 +319,8 @@ template <typename T> void run_fixture(const Options &options, const Fixture<T> 
                           << fixture_workload_name(fixture.workload) << ',' << shape.timed_count << ','
                           << trial - options.warmup << ',' << nanos << ',' << fixture_protocol << ',';
                 csv_field(std::cout, std::string(build_description) + "/" + build_options + "/source=" + source_digest + "/dependencies=" + dependency_digest);
-                std::cout << ',' << (heap.kind == QueueKind::QuickHeap || heap.kind == QueueKind::KvQuickHeap
-                    ? simd_backend() : "scalar") << ',' << fixture.digest << ',';
+                std::cout << ',' << (heap.kind == QueueKind::QuickHeap || heap.kind == QueueKind::KvQuickHeap ||
+                                  quickheap_variant(heap.kind) ? simd_backend() : "scalar") << ',' << fixture.digest << ',';
                 std::string reservation = "backend-default";
 #ifdef QUICKHEAP_BENCH_EXTERNAL
                 if (heap.kind == QueueKind::Original) reservation = "required-capacity:" + std::to_string(peak);

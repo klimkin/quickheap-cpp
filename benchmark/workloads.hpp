@@ -290,7 +290,7 @@ template <typename T> Plan<T> make_plan(Workload workload, std::size_t n) {
     return b.finish();
 }
 
-template <typename T> class KeyQuickHeap {
+template <typename T, unsigned Opts = 0> class KeyQuickHeap {
   public:
     using Item = T;
     void push(T key) { heap_.push(key); }
@@ -307,7 +307,7 @@ template <typename T> class KeyQuickHeap {
     std::size_t capacity() const { return heap_.capacity(); }
 
   private:
-    quickheap::detail::SimdQuickHeap<T> heap_;
+    quickheap::detail::SimdQuickHeap<T, quickheap::detail::DefaultBackend, Opts> heap_;
 };
 
 template <typename T> class KvQuickHeap {
