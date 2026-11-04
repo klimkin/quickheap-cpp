@@ -20,13 +20,14 @@ inline constexpr unsigned opt_one_count = 4;
 inline constexpr unsigned opt_scan_early_exit = 8;
 inline constexpr unsigned opt_sort_network = 16;
 inline constexpr unsigned opt_sample_growth = 64;
+inline constexpr unsigned opt_terminal_32 = 128;
 
 // Mirrors `SimdQuickHeap` from the Rust crate's lib.rs. `pivots` decrease; `buckets[i]`
 // holds elements between pivots i-1 and i. The terminal layer `buckets[pivots.size()]`
 // stays sorted in decreasing order whenever it holds at most N elements.
 template <class T, class Backend = DefaultBackend, unsigned Opts = 0>
 class SimdQuickHeap {
-    static constexpr std::size_t N = 16;
+    static constexpr std::size_t N = (Opts & opt_terminal_32) != 0 ? 32 : 16;
     static constexpr std::size_t L = SimdElem<T, Backend>::L;
 
     Vec<T> pivots_ = Vec<T>::with_capacity(128);
@@ -34,10 +35,17 @@ class SimdQuickHeap {
     std::size_t size_ = 0;
 
     static void sort_descending(Vec<T>& layer) noexcept {
+        const auto greater = [](T a, T b) { return a > b; };
         if constexpr ((Opts & opt_sort_network) != 0) {
-            sort_terminal_descending(layer.data(), layer.size());
-        } else {
-            sort_unstable_small(layer.data(), layer.size(), [](T a, T b) { return a > b; });
+            if (layer.size() <= 16) {
+                sort_terminal_descending(layer.data(), layer.size());
+                return;
+            }
+        }
+        if constexpr (N == 16) {
+            sort_unstable_small(layer.data(), layer.size(), greater);
+        } else if (layer.size() > 1) {
+            insertion_sort_shift_left(layer.data(), layer.size(), 1, greater);
         }
     }
 
