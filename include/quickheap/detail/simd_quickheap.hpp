@@ -6,6 +6,7 @@
 #include "sort.hpp"
 #include "vec.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <new>
@@ -21,6 +22,7 @@ inline constexpr unsigned opt_scan_early_exit = 8;
 inline constexpr unsigned opt_sort_network = 16;
 inline constexpr unsigned opt_sample_growth = 64;
 inline constexpr unsigned opt_terminal_32 = 128;
+inline constexpr unsigned opt_rebalance = 256;
 
 // Mirrors `SimdQuickHeap` from the Rust crate's lib.rs. `pivots` decrease; `buckets[i]`
 // holds elements between pivots i-1 and i. The terminal layer `buckets[pivots.size()]`
@@ -33,6 +35,7 @@ class SimdQuickHeap {
     Vec<T> pivots_ = Vec<T>::with_capacity(128);
     std::vector<Vec<T>> buckets_ = std::vector<Vec<T>>(128);
     std::size_t size_ = 0;
+    std::size_t pops_since_rebalance_ = 0;
 
     static void sort_descending(Vec<T>& layer) noexcept {
         const auto greater = [](T a, T b) { return a > b; };
@@ -116,6 +119,31 @@ class SimdQuickHeap {
         sort_descending(buckets_[pivots_.size()]);
     }
 
+    void merge_layers(std::size_t upper) {
+        auto* dst = &buckets_[upper];
+        auto* src = &buckets_[upper + 1];
+        if (dst->size() < src->size()) {
+            std::swap(dst, src);
+        }
+        dst->extend_from_slice(src->data(), src->size());
+        src->clear();
+        buckets_[upper].swap(*dst);
+        std::rotate(buckets_.begin() + static_cast<std::ptrdiff_t>(upper) + 1,
+                    buckets_.begin() + static_cast<std::ptrdiff_t>(upper) + 2, buckets_.end());
+        pivots_.remove(upper);
+    }
+
+    [[gnu::noinline]] void rebalance() {
+        std::size_t total = 0;
+        for (auto layer = pivots_.size(); layer != 0; --layer) {
+            if (buckets_[layer].size() + buckets_[layer - 1].size() < 2 * total) {
+                merge_layers(layer - 1);
+            } else {
+                total += buckets_[layer].size();
+            }
+        }
+    }
+
 public:
     std::size_t capacity() const noexcept {
         std::size_t total = 0;
@@ -148,6 +176,13 @@ public:
     bool pop_into(T& out) {
         if (size_ == 0) {
             return false;
+        }
+
+        if constexpr ((Opts & opt_rebalance) != 0) {
+            if (++pops_since_rebalance_ == 2048) {
+                pops_since_rebalance_ = 0;
+                rebalance();
+            }
         }
 
         if (buckets_[pivots_.size()].size() > N) {

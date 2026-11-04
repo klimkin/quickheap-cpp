@@ -110,6 +110,22 @@ public:
         ++len_;
     }
 
+    T remove(std::size_t index) noexcept {
+        assert(index < len_);
+        const T value = ptr_[index];
+        std::memmove(ptr_ + index, ptr_ + index + 1, (len_ - index - 1) * sizeof(T));
+        --len_;
+        return value;
+    }
+
+    void extend_from_slice(const T* src, std::size_t count) {
+        reserve(count);
+        if (count != 0) {
+            std::memcpy(ptr_ + len_, src, count * sizeof(T));
+        }
+        len_ += count;
+    }
+
     void clear() noexcept { len_ = 0; }
 
     void set_len(std::size_t len) noexcept {
