@@ -19,6 +19,7 @@ inline constexpr unsigned opt_cold_terminal = 2;
 inline constexpr unsigned opt_one_count = 4;
 inline constexpr unsigned opt_scan_early_exit = 8;
 inline constexpr unsigned opt_sort_network = 16;
+inline constexpr unsigned opt_sample_growth = 64;
 
 // Mirrors `SimdQuickHeap` from the Rust crate's lib.rs. `pivots` decrease; `buckets[i]`
 // holds elements between pivots i-1 and i. The terminal layer `buckets[pivots.size()]`
@@ -49,6 +50,18 @@ class SimdQuickHeap {
         return push_position<T, Backend, (Opts & opt_scan_early_exit) != 0>(pivots_, t);
     }
 
+    static std::pair<T, std::size_t> pick_pivot(const T* layer, std::size_t n) noexcept {
+        if constexpr ((Opts & opt_sample_growth) != 0) {
+            if (n >= 16384) {
+                return MedianOfM<15>::pick(layer, n);
+            }
+            if (n >= 1024) {
+                return MedianOfM<7>::pick(layer, n);
+            }
+        }
+        return MedianOfM<3>::pick(layer, n);
+    }
+
     [[gnu::noinline]] void partition() {
         const auto total_layers = pivots_.size() + 1;
 
@@ -63,7 +76,7 @@ class SimdQuickHeap {
         auto& cur_layer = buckets_[pivots_.size()];
         auto& next_layer = buckets_[pivots_.size() + 1];
 
-        const auto [pivot, pivot_pos] = MedianOfM<3>::pick(cur_layer.data(), cur_layer.size());
+        const auto [pivot, pivot_pos] = pick_pivot(cur_layer.data(), cur_layer.size());
 
         pivots_.push(pivot);
 

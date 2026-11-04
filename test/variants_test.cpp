@@ -28,7 +28,8 @@ template <class T, class Backend>
 using AllOpts = std::tuple<Variant<T, Backend, 0>, Variant<T, Backend, 1>, Variant<T, Backend, 2>,
                            Variant<T, Backend, 4>, Variant<T, Backend, 8>, Variant<T, Backend, 16>,
                            Variant<T, Backend, 3>, Variant<T, Backend, 7>, Variant<T, Backend, 15>,
-                           Variant<T, Backend, 31>, Variant<T, Backend, 32>>;
+                           Variant<T, Backend, 31>, Variant<T, Backend, 32>,
+                           Variant<T, Backend, 64>>;
 
 template <class Backend>
 using AllKeys = decltype(std::tuple_cat(AllOpts<std::int32_t, Backend>{}, AllOpts<std::uint32_t, Backend>{},
