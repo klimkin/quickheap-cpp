@@ -7,9 +7,12 @@
 #include "vec.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstddef>
+#include <functional>
 #include <new>
+#include <span>
 #include <utility>
 #include <vector>
 
@@ -23,6 +26,7 @@ inline constexpr unsigned opt_sort_network = 16;
 inline constexpr unsigned opt_sample_growth = 64;
 inline constexpr unsigned opt_terminal_32 = 128;
 inline constexpr unsigned opt_rebalance = 256;
+inline constexpr unsigned opt_four_way = 512;
 
 // Mirrors `SimdQuickHeap` from the Rust crate's lib.rs. `pivots` decrease; `buckets[i]`
 // holds elements between pivots i-1 and i. The terminal layer `buckets[pivots.size()]`
@@ -73,7 +77,63 @@ class SimdQuickHeap {
         return MedianOfM<3>::pick(layer, n);
     }
 
+    bool try_partition4() {
+        const auto p = pivots_.size();
+        const auto n = buckets_[p].size();
+
+        std::array<std::pair<T, std::size_t>, 7> samples;
+        for (auto& sample : samples) {
+            const auto pos = random_range(n);
+            sample = {buckets_[p][pos], pos};
+        }
+        insertion_sort_shift_left(samples.data(), samples.size(), 1, std::less<>{});
+        const std::array bounds = {samples[3], samples[1], samples[0]};
+
+        pivots_.reserve(4 + 2 * L);
+        while (buckets_.size() < p + 4) {
+            buckets_.emplace_back();
+        }
+        for (std::size_t k = 1; k < 4; ++k) {
+            buckets_[p + k].clear();
+        }
+
+        const std::span<Vec<T>, 3> outs(&buckets_[p + 1], 3);
+        VecPartitioning<T, Backend>::partition4(buckets_[p], outs, bounds);
+
+        std::size_t populated = 0;
+        for (std::size_t k = 0; k < 4; ++k) {
+            populated += !buckets_[p + k].empty();
+        }
+        if (populated < 2) {
+            for (std::size_t k = 1; k < 4; ++k) {
+                if (!buckets_[p + k].empty()) {
+                    buckets_[p].swap(buckets_[p + k]);
+                }
+            }
+            return false;
+        }
+
+        std::size_t placed = 0;
+        for (std::size_t k = 0; k < 4; ++k) {
+            if (buckets_[p + k].empty()) {
+                continue;
+            }
+            if (placed != 0) {
+                pivots_.push(bounds[k - 1].first);
+            }
+            buckets_[p + placed].swap(buckets_[p + k]);
+            ++placed;
+        }
+        return true;
+    }
+
     [[gnu::noinline]] void partition() {
+        if constexpr ((Opts & opt_four_way) != 0) {
+            if (buckets_[pivots_.size()].size() > 128 && try_partition4()) {
+                return;
+            }
+        }
+
         const auto total_layers = pivots_.size() + 1;
 
         if (total_layers + 2 * L >= pivots_.capacity()) {

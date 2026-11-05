@@ -3,8 +3,12 @@
 #include "simd.hpp"
 #include "vec.hpp"
 
+#include <array>
+#include <bit>
 #include <cassert>
 #include <cstddef>
+#include <span>
+#include <utility>
 
 namespace quickheap::detail {
 
@@ -55,6 +59,56 @@ struct VecPartitioning {
 
         cur_layer.set_len(cur_len);
         next_layer.set_len(next_len);
+    }
+
+    static void partition4(Vec<T>& cur_layer, std::span<Vec<T>, 3> outs,
+                           const std::array<std::pair<T, std::size_t>, 3>& bounds) {
+        const auto n = cur_layer.size();
+
+        cur_layer.reserve(L);
+        for (std::size_t k = 0; k < 3; ++k) {
+            assert(outs[k].empty());
+            outs[k].reserve(n + L);
+        }
+
+        const auto n2 = saturating_sub(next_multiple_of(n, L), L);
+        const std::array thresholds = {S::splat(bounds[0].first), S::splat(bounds[1].first),
+                                       S::splat(bounds[2].first)};
+
+        T* const cur_ptr = cur_layer.data();
+        const std::array out_ptrs = {outs[0].data(), outs[1].data(), outs[2].data()};
+        std::size_t cur_len = 0;
+        std::array<std::size_t, 3> out_lens{};
+
+        const auto split = [&](typename S::Simd vals, unsigned live) {
+            const auto m0 = S::small_mask(vals, thresholds[0], bounds[0].second) & live;
+            const auto m1 = S::small_mask(vals, thresholds[1], bounds[1].second) & live;
+            const auto m2 = S::small_mask(vals, thresholds[2], bounds[2].second) & live;
+            const auto any = m0 | m1 | m2;
+            const auto odd = m0 ^ m1 ^ m2;
+            const auto all_three = m0 & m1 & m2;
+            const auto none = live & ~any;
+            const std::array<unsigned, 3> masks = {odd & ~all_three, any & ~odd, all_three};
+            S::compress_store(cur_ptr + cur_len, vals, none ^ S::full);
+            cur_len += static_cast<std::size_t>(std::popcount(none));
+            for (std::size_t k = 0; k < 3; ++k) {
+                S::compress_store(out_ptrs[k] + out_lens[k], vals, masks[k] ^ S::full);
+                out_lens[k] += static_cast<std::size_t>(std::popcount(masks[k]));
+            }
+        };
+
+        for (std::size_t i = 0; i < n2; i += L) {
+            split(S::load(cur_ptr + i), S::full);
+        }
+
+        if (n2 < n) {
+            split(S::load(cur_ptr + n2), S::in_range(n - n2));
+        }
+
+        cur_layer.set_len(cur_len);
+        for (std::size_t k = 0; k < 3; ++k) {
+            outs[k].set_len(out_lens[k]);
+        }
     }
 
     static void partition_kv(Vec<T>& cur_keys, Vec<T>& cur_vals, Vec<T>& next_keys,
