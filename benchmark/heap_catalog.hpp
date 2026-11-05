@@ -75,6 +75,10 @@ inline constexpr unsigned a2 = quickheap::detail::opt_cold_terminal;
 inline constexpr unsigned a3 = quickheap::detail::opt_one_count;
 inline constexpr unsigned a4 = quickheap::detail::opt_scan_early_exit;
 inline constexpr unsigned a5 = quickheap::detail::opt_sort_network;
+inline constexpr unsigned a6 = quickheap::detail::opt_sample_growth;
+inline constexpr unsigned a7 = quickheap::detail::opt_terminal_32;
+inline constexpr unsigned a8 = quickheap::detail::opt_rebalance;
+inline constexpr unsigned a9 = quickheap::detail::opt_four_way;
 inline constexpr unsigned aa_unread_bit_twin_of_quickheap = 32;
 
 struct QuickHeapVariant { std::string_view name; unsigned opts; };
@@ -84,6 +88,10 @@ inline constexpr std::array quickheap_variants = {
     QuickHeapVariant{"quickheap_a3", a3},
     QuickHeapVariant{"quickheap_a4", a4},
     QuickHeapVariant{"quickheap_a5", a5},
+    QuickHeapVariant{"quickheap_a6", a6},
+    QuickHeapVariant{"quickheap_a7", a7},
+    QuickHeapVariant{"quickheap_a8", a8},
+    QuickHeapVariant{"quickheap_a9", a9},
     QuickHeapVariant{"quickheap_a12", a1 | a2},
     QuickHeapVariant{"quickheap_a123", a1 | a2 | a3},
     QuickHeapVariant{"quickheap_a1234", a1 | a2 | a3 | a4},

@@ -14,6 +14,7 @@ max=${BENCH_MAX:-22}
 mkdir -- "$output"
 
 heaps=quickheap,quickheap_a1,quickheap_a2,quickheap_a3,quickheap_a4,quickheap_a5
+heaps=$heaps,quickheap_a6,quickheap_a7,quickheap_a8,quickheap_a9
 heaps=$heaps,quickheap_a12,quickheap_a123,quickheap_a1234,quickheap_a12345,quickheap_aa
 workloads=MonotoneConstantSize,RandomConstantSize,WorstCaseDescending,MostlyPushDecreasing,HeapSort
 
