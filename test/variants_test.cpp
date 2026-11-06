@@ -3,6 +3,7 @@
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -147,5 +148,39 @@ TEMPLATE_LIST_TEST_CASE("Variants pop in ascending order", "[variants]", Variant
         }
         heap.drain();
         heap.check();
+    }
+}
+
+TEST_CASE("sort_unstable_small matches std::sort up to 32 keys", "[variants]") {
+    SplitMix rng;
+    for (std::size_t len = 0; len <= 32; ++len) {
+        for (int pattern = 0; pattern < 6; ++pattern) {
+            for (int round = 0; round < 200; ++round) {
+                std::vector<std::int64_t> v(len);
+                for (std::size_t i = 0; i < len; ++i) {
+                    switch (pattern) {
+                    case 0: v[i] = mixed_key<std::int64_t>(rng); break;
+                    case 1: v[i] = static_cast<std::int64_t>(rng.next() % 3); break;
+                    case 2: v[i] = static_cast<std::int64_t>(i); break;
+                    case 3: v[i] = -static_cast<std::int64_t>(i); break;
+                    case 4: v[i] = -static_cast<std::int64_t>(i / 2); break;
+                    default: v[i] = static_cast<std::int64_t>(i) - (i == len / 2 ? 100 : 0); break;
+                    }
+                }
+                INFO("len " << len << " pattern " << pattern);
+                for (const bool descending : {false, true}) {
+                    auto actual = v;
+                    auto expected = v;
+                    if (descending) {
+                        qd::sort_unstable_small(actual.data(), len, std::greater<>{});
+                        std::sort(expected.begin(), expected.end(), std::greater<>{});
+                    } else {
+                        qd::sort_unstable_small(actual.data(), len, std::less<>{});
+                        std::sort(expected.begin(), expected.end());
+                    }
+                    REQUIRE(actual == expected);
+                }
+            }
+        }
     }
 }

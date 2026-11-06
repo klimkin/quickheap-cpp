@@ -49,11 +49,7 @@ class SimdQuickHeap {
                 return;
             }
         }
-        if constexpr (N == 16) {
-            sort_unstable_small(layer.data(), layer.size(), greater);
-        } else if (layer.size() > 1) {
-            insertion_sort_shift_left(layer.data(), layer.size(), 1, greater);
-        }
+        sort_unstable_small(layer.data(), layer.size(), greater);
     }
 
     std::size_t push_target(T t) const noexcept {
