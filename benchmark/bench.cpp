@@ -454,9 +454,9 @@ template <typename T> void run_type(const Options &options) {
                 }
                 continue;
             }
-            for (const auto &heap : queue_catalog) {
-                if (std::find(options.selected_heaps.begin(), options.selected_heaps.end(), heap.kind) ==
-                    options.selected_heaps.end()) continue;
+            for (const auto kind : options.selected_heaps) {
+                const auto &heap = *std::find_if(queue_catalog.begin(), queue_catalog.end(),
+                                                 [&](const auto &entry) { return entry.kind == kind; });
                 if (heap.monotone && !monotone_workload(workload.workload)) {
                     std::cerr << "skip " << heap.name << '/' << workload.name << ": nonmonotone workload\n";
                     continue;
