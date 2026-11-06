@@ -1,0 +1,90 @@
+{
+ "title": "SimdQuickHeap variants A1 to A9: factorial analysis",
+ "intro": "Goal: measure the effect of each SimdQuickHeap variant flag and find the best combination, separately for C++ and for Rust. The languages are never compared with each other. Each cell is the change in median time per operation when the term is on, as a 95% interval over passes. A screening design (32 runs, resolution IV) covered all nine flags plus a dummy bit that no code reads. A follow-up half fraction (32 runs, resolution VI) covered the six flags worth keeping. A sequential confirmation run tested the predicted best combinations against Opts 0.",
+ "sections": [
+  {
+   "heading": "C++ screening, 2^(10-5)",
+   "text": "Main effects and two-factor alias chains. The dummy row is the noise floor from code layout alone.",
+   "directory": "/tmp/qhv/screen-cpp",
+   "kind": "screening"
+  },
+  {
+   "heading": "Rust screening, 2^(10-5)",
+   "text": "",
+   "directory": "/tmp/qhv/screen-rust",
+   "kind": "screening"
+  },
+  {
+   "heading": "C++ follow-up, 2^(6-1) on A1 A2 A4 A5 A6 A7",
+   "text": "A3, A8 and A9 held off. Every two-factor interaction is clear of other two-factor interactions.",
+   "directory": "/tmp/qhv/follow-cpp",
+   "kind": "half",
+   "factors": [
+    "A1",
+    "A2",
+    "A4",
+    "A5",
+    "A6",
+    "A7"
+   ]
+  },
+  {
+   "heading": "Rust follow-up, 2^(6-1) on A1 A2 A4 A5 A6 A7",
+   "text": "",
+   "directory": "/tmp/qhv/follow-rust",
+   "kind": "half",
+   "factors": [
+    "A1",
+    "A2",
+    "A4",
+    "A5",
+    "A6",
+    "A7"
+   ]
+  },
+  {
+   "heading": "C++ predicted best combinations",
+   "text": "Main effects plus two-factor interactions from the follow-up, all 64 combinations against all off, best 10 shown.",
+   "directory": "/tmp/qhv/follow-cpp",
+   "kind": "predict",
+   "design": "half",
+   "factors": [
+    "A1",
+    "A2",
+    "A4",
+    "A5",
+    "A6",
+    "A7"
+   ],
+   "top": 10
+  },
+  {
+   "heading": "Rust predicted best combinations",
+   "text": "",
+   "directory": "/tmp/qhv/follow-rust",
+   "kind": "predict",
+   "design": "half",
+   "factors": [
+    "A1",
+    "A2",
+    "A4",
+    "A5",
+    "A6",
+    "A7"
+   ],
+   "top": 10
+  },
+  {
+   "heading": "C++ confirmation, measured against Opts 0",
+   "text": "Seven sequential passes on CPU 3, nine Opts values in a shuffled order per pass. Opts 203 was not measured in the follow-up. It measured −20.8% [−21.1, −20.4] against a predicted −20.2%. Paired across passes, adding A4 to A1+A2+A6+A7 changes the overall time by −0.6% [−1.3, +0.1], adding A3 by +0.2% (not significant), and adding A5 by +7.5% (PushDecr +20.7%).",
+   "directory": "/tmp/qhv/confirm-cpp",
+   "kind": "combinations"
+  },
+  {
+   "heading": "Rust confirmation, measured against Opts 0",
+   "text": "Seven sequential passes on CPU 5. Opts 217 was not measured in the follow-up. It measured −29.8% [−30.3, −29.3] against a predicted −30.2%. Paired across passes, adding A5 to A1+A4+A6+A7 changes the overall time by −0.7% [−1.7, +0.4], with Monotone −3.5%, HeapSort −4.6% and PushDecr +7.3%. Adding A2 to A1+A4+A5+A6+A7 costs +0.6%.",
+   "directory": "/tmp/qhv/confirm-rust",
+   "kind": "combinations"
+  }
+ ]
+}
