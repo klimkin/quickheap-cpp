@@ -8,9 +8,9 @@
 #include <array>
 #include <bit>
 #include <cerrno>
+#include <csignal>
 #include <cstddef>
 #include <cstdint>
-#include <csignal>
 #include <cstdlib>
 #include <functional>
 #include <limits>
@@ -26,7 +26,7 @@
 #else
 #include <spawn.h>
 #include <sys/wait.h>
-extern char **environ;
+extern char** environ;
 #endif
 
 extern "C" int quickheap_c_api_smoke(void);
@@ -39,7 +39,7 @@ TEMPLATE_TEST_CASE("QuickHeapTypedTest.SmallTerminalsRetainDuplicatesAndExtrema"
                    std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
     using T = TestType;
     const std::array<T, 5> keys{std::numeric_limits<T>::lowest(), std::numeric_limits<T>::max(),
-                              T{0}, T{1}, T{1}};
+                                T{0}, T{1}, T{1}};
     for (std::size_t count = 0; count <= 17; ++count) {
         quickheap::Heap<T> heap;
         quickheap::KvSimdQuickHeap<T> kv;
@@ -81,19 +81,17 @@ template <typename T, Pattern P> class Generator {
   public:
     T next() {
         if constexpr (P == Pattern::Increasing) {
-            return from_bits<T>(static_cast<std::make_unsigned_t<T>>(
-                std::numeric_limits<T>::min()) + counter_++);
+            return from_bits<T>(
+                static_cast<std::make_unsigned_t<T>>(std::numeric_limits<T>::min()) + counter_++);
         } else if constexpr (P == Pattern::Decreasing) {
-            return from_bits<T>(static_cast<std::make_unsigned_t<T>>(
-                std::numeric_limits<T>::max()) - counter_++);
+            return from_bits<T>(
+                static_cast<std::make_unsigned_t<T>>(std::numeric_limits<T>::max()) - counter_++);
         } else if constexpr (P == Pattern::MostlyMax) {
-            return (random_bits() & 0xffffU) < 100
-                       ? from_bits<T>(random_bits())
-                       : std::numeric_limits<T>::max();
+            return (random_bits() & 0xffffU) < 100 ? from_bits<T>(random_bits())
+                                                   : std::numeric_limits<T>::max();
         } else if constexpr (P == Pattern::MostlyMin) {
-            return (random_bits() & 0xffffU) < 100
-                       ? from_bits<T>(random_bits())
-                       : std::numeric_limits<T>::min();
+            return (random_bits() & 0xffffU) < 100 ? from_bits<T>(random_bits())
+                                                   : std::numeric_limits<T>::min();
         } else {
             return from_bits<T>(random_bits());
         }
@@ -113,8 +111,7 @@ template <typename T, Pattern P> class Generator {
 };
 
 constexpr std::array<std::size_t, 20> sizes = {
-    0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 15, 16, 17, 31, 32, 33,
-    100, 1000, 10000, 100000,
+    0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 15, 16, 17, 31, 32, 33, 100, 1000, 10000, 100000,
 };
 
 template <typename T, bool KeyValue> class Queue {
@@ -159,8 +156,7 @@ template <typename T, bool KeyValue> class Queue {
     std::size_t capacity() const { return heap_.capacity(); }
 
   private:
-    using Heap = std::conditional_t<KeyValue, quickheap::KvSimdQuickHeap<T>,
-                                    quickheap::Heap<T>>;
+    using Heap = std::conditional_t<KeyValue, quickheap::KvSimdQuickHeap<T>, quickheap::Heap<T>>;
     Heap heap_;
     std::vector<T> inserted_keys_;
     std::vector<bool> consumed_;
@@ -237,103 +233,103 @@ template <typename T, bool KeyValue, Pattern P> void wiggle_workload() {
     }
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortRandomKeys", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortRandomKeys", "[quickheap]", std::int32_t, std::uint32_t,
+                   std::int64_t, std::uint64_t) {
     sort_workload<TestType, false, Pattern::Random>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortRandomKeyValues", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortRandomKeyValues", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     sort_workload<TestType, true, Pattern::Random>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleRandomKeys", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleRandomKeys", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     wiggle_workload<TestType, false, Pattern::Random>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleRandomKeyValues", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleRandomKeyValues", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     wiggle_workload<TestType, true, Pattern::Random>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortIncreasingKeys", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortIncreasingKeys", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     sort_workload<TestType, false, Pattern::Increasing>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortIncreasingKeyValues", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortIncreasingKeyValues", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     sort_workload<TestType, true, Pattern::Increasing>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleIncreasingKeys", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleIncreasingKeys", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     wiggle_workload<TestType, false, Pattern::Increasing>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleIncreasingKeyValues", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleIncreasingKeyValues", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     wiggle_workload<TestType, true, Pattern::Increasing>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortDecreasingKeys", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortDecreasingKeys", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     sort_workload<TestType, false, Pattern::Decreasing>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortDecreasingKeyValues", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortDecreasingKeyValues", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     sort_workload<TestType, true, Pattern::Decreasing>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleDecreasingKeys", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleDecreasingKeys", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     wiggle_workload<TestType, false, Pattern::Decreasing>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleDecreasingKeyValues", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleDecreasingKeyValues", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     wiggle_workload<TestType, true, Pattern::Decreasing>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortMostlyMaxKeys", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortMostlyMaxKeys", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     sort_workload<TestType, false, Pattern::MostlyMax>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortMostlyMaxKeyValues", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortMostlyMaxKeyValues", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     sort_workload<TestType, true, Pattern::MostlyMax>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleMostlyMaxKeys", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleMostlyMaxKeys", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     wiggle_workload<TestType, false, Pattern::MostlyMax>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleMostlyMaxKeyValues", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleMostlyMaxKeyValues", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     wiggle_workload<TestType, true, Pattern::MostlyMax>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortMostlyMinKeys", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortMostlyMinKeys", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     sort_workload<TestType, false, Pattern::MostlyMin>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortMostlyMinKeyValues", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.SortMostlyMinKeyValues", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     sort_workload<TestType, true, Pattern::MostlyMin>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleMostlyMinKeys", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleMostlyMinKeys", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     wiggle_workload<TestType, false, Pattern::MostlyMin>();
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleMostlyMinKeyValues", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.WiggleMostlyMinKeyValues", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
     wiggle_workload<TestType, true, Pattern::MostlyMin>();
 }
 
@@ -343,14 +339,13 @@ TEMPLATE_TEST_CASE("QuickHeapTypedTest.KeyValueReusePreservesAssociations", "[qu
     Queue<T, true> heap;
     Generator<T, Pattern::Random> generator;
     std::size_t retained_capacity = 0;
-    for (const std::size_t count : {17U, 257U, 33U, 4097U, 8193U, 17U,
-                                   16385U, 1025U, 16385U}) {
+    for (const std::size_t count : {17U, 257U, 33U, 4097U, 8193U, 17U, 16385U, 1025U, 16385U}) {
         std::vector<T> expected;
         expected.reserve(count);
         for (std::size_t index = 0; index < count; ++index) {
-            const auto key = index % 4 == 0 ? std::numeric_limits<T>::min()
-                           : index % 4 == 1 ? std::numeric_limits<T>::max()
-                                            : generator.next();
+            const auto key = index % 4 == 0   ? std::numeric_limits<T>::min()
+                             : index % 4 == 1 ? std::numeric_limits<T>::max()
+                                              : generator.next();
             heap.push(key);
             expected.push_back(key);
         }
@@ -390,7 +385,7 @@ TEMPLATE_TEST_CASE("QuickHeapTypedTest.KeyWrapperMovesAndRetainsCapacity", "[qui
     Heap destination;
     destination.push(static_cast<T>(99));
     destination = std::move(moved);
-    auto &alias = destination;
+    auto& alias = destination;
     destination = std::move(alias);
     CHECK(destination.capacity() == capacity);
     CHECK(destination.pop() == static_cast<T>(1));
@@ -422,7 +417,7 @@ TEMPLATE_TEST_CASE("QuickHeapTypedTest.KeyValueWrapperMovesAndRetainsCapacity", 
     Heap destination;
     destination.push(static_cast<T>(99), static_cast<T>(990));
     destination = std::move(moved);
-    auto &alias = destination;
+    auto& alias = destination;
     destination = std::move(alias);
     CHECK(destination.capacity() == capacity);
     CHECK(destination.pop() == (std::pair<T, T>{1, 10}));
@@ -434,19 +429,17 @@ TEMPLATE_TEST_CASE("QuickHeapTypedTest.KeyValueWrapperMovesAndRetainsCapacity", 
 }
 
 template <typename T> struct CApi;
-#define QUICKHEAP_C_API(T, HandleType, Prefix)                                  \
-    template <> struct CApi<T> {                                               \
-        using Handle = HandleType;                                             \
-        static constexpr const char *name = #HandleType;                       \
-        static Handle *create() { return Prefix##_new(); }                     \
-        static void destroy(Handle *h) { Prefix##_free(h); }                   \
-        static void push(Handle *h, T x) { Prefix##_push(h, x); }               \
-        static bool pop(Handle *h, T *out) { return Prefix##_pop(h, out); }     \
-        static std::size_t size(const Handle *h) { return Prefix##_len(h); }   \
-        static bool empty(const Handle *h) { return Prefix##_is_empty(h); }    \
-        static std::size_t capacity(const Handle *h) {                         \
-            return Prefix##_capacity(h);                                       \
-        }                                                                      \
+#define QUICKHEAP_C_API(T, HandleType, Prefix)                                                     \
+    template <> struct CApi<T> {                                                                   \
+        using Handle = HandleType;                                                                 \
+        static constexpr const char* name = #HandleType;                                           \
+        static Handle* create() { return Prefix##_new(); }                                         \
+        static void destroy(Handle* h) { Prefix##_free(h); }                                       \
+        static void push(Handle* h, T x) { Prefix##_push(h, x); }                                  \
+        static bool pop(Handle* h, T* out) { return Prefix##_pop(h, out); }                        \
+        static std::size_t size(const Handle* h) { return Prefix##_len(h); }                       \
+        static bool empty(const Handle* h) { return Prefix##_is_empty(h); }                        \
+        static std::size_t capacity(const Handle* h) { return Prefix##_capacity(h); }              \
     };
 
 QUICKHEAP_C_API(std::int32_t, QuickHeapI32, quickheap_i32)
@@ -458,7 +451,7 @@ QUICKHEAP_C_API(std::uint64_t, QuickHeapU64, quickheap_u64)
 enum class NullOperation { Destroy, Push, Pop, Size, Empty, Capacity, Output };
 
 struct NamedNullOperation {
-    const char *name;
+    const char* name;
     NullOperation operation;
 };
 
@@ -496,7 +489,7 @@ template <typename T> void run_null_operation(NullOperation operation) {
         Api::capacity(nullptr);
         break;
     case NullOperation::Output: {
-        auto *heap = Api::create();
+        auto* heap = Api::create();
         Api::pop(heap, nullptr);
         Api::destroy(heap);
         break;
@@ -505,7 +498,7 @@ template <typename T> void run_null_operation(NullOperation operation) {
 }
 
 struct NullTestType {
-    const char *name;
+    const char* name;
     void (*run)(NullOperation);
 };
 
@@ -516,19 +509,17 @@ constexpr std::array null_test_types = {
     NullTestType{CApi<std::uint64_t>::name, run_null_operation<std::uint64_t>},
 };
 
-constexpr const char *null_test_argument = "--quickheap-null-test";
+constexpr const char* null_test_argument = "--quickheap-null-test";
 constexpr int abort_exit_code = 86;
-const char *test_executable = nullptr;
+const char* test_executable = nullptr;
 
-int run_null_test_child(std::string_view type_name,
-                        std::string_view operation_name) {
-    const auto type = std::find_if(null_test_types.begin(), null_test_types.end(),
-                                  [type_name](const auto &entry) {
-                                      return type_name == entry.name;
-                                  });
-    const auto operation = std::find_if(
-        null_operations.begin(), null_operations.end(),
-        [operation_name](const auto &entry) { return operation_name == entry.name; });
+int run_null_test_child(std::string_view type_name, std::string_view operation_name) {
+    const auto type =
+        std::find_if(null_test_types.begin(), null_test_types.end(),
+                     [type_name](const auto& entry) { return type_name == entry.name; });
+    const auto operation =
+        std::find_if(null_operations.begin(), null_operations.end(),
+                     [operation_name](const auto& entry) { return operation_name == entry.name; });
     if (type == null_test_types.end() || operation == null_operations.end()) {
         return 2;
     }
@@ -539,19 +530,16 @@ int run_null_test_child(std::string_view type_name,
     return 0;
 }
 
-int null_operation_exit_code(const char *type_name, const char *operation_name) {
+int null_operation_exit_code(const char* type_name, const char* operation_name) {
 #ifdef _WIN32
-    const char *arguments[] = {"quickheap_tests", null_test_argument, type_name,
-                              operation_name, nullptr};
+    const char* arguments[] = {"quickheap_tests", null_test_argument, type_name, operation_name,
+                               nullptr};
     return static_cast<int>(_spawnvp(_P_WAIT, test_executable, arguments));
 #else
-    char *arguments[] = {const_cast<char *>(test_executable),
-                         const_cast<char *>(null_test_argument),
-                         const_cast<char *>(type_name),
-                         const_cast<char *>(operation_name), nullptr};
+    char* arguments[] = {const_cast<char*>(test_executable), const_cast<char*>(null_test_argument),
+                         const_cast<char*>(type_name), const_cast<char*>(operation_name), nullptr};
     pid_t child;
-    if (posix_spawnp(&child, test_executable, nullptr, nullptr, arguments,
-                     environ) != 0) {
+    if (posix_spawnp(&child, test_executable, nullptr, nullptr, arguments, environ) != 0) {
         return -1;
     }
     int status;
@@ -566,7 +554,7 @@ int null_operation_exit_code(const char *type_name, const char *operation_name) 
 TEMPLATE_TEST_CASE("QuickHeapTypedTest.CApiEmptyPopLeavesOutputUntouched", "[quickheap]",
                    std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
     using Api = CApi<TestType>;
-    auto *heap = Api::create();
+    auto* heap = Api::create();
     REQUIRE(heap != nullptr);
     TestType out = static_cast<TestType>(71);
     CHECK_FALSE(Api::pop(heap, &out));
@@ -580,12 +568,11 @@ TEMPLATE_TEST_CASE("QuickHeapTypedTest.CApiEmptyPopLeavesOutputUntouched", "[qui
     Api::destroy(heap);
 }
 
-TEMPLATE_TEST_CASE("QuickHeapTypedTest.CApiRejectsEveryNullPointer", "[quickheap]",
-                   std::int32_t, std::uint32_t, std::int64_t, std::uint64_t) {
-    for (const auto &operation : null_operations) {
+TEMPLATE_TEST_CASE("QuickHeapTypedTest.CApiRejectsEveryNullPointer", "[quickheap]", std::int32_t,
+                   std::uint32_t, std::int64_t, std::uint64_t) {
+    for (const auto& operation : null_operations) {
         CAPTURE(operation.name);
-        CHECK(null_operation_exit_code(CApi<TestType>::name, operation.name) ==
-              abort_exit_code);
+        CHECK(null_operation_exit_code(CApi<TestType>::name, operation.name) == abort_exit_code);
     }
 }
 
@@ -595,7 +582,7 @@ TEST_CASE("CApiFromC.AllFourIntegerTypes", "[quickheap][c-api]") {
 
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     test_executable = argv[0];
     if (argc > 1 && std::string_view(argv[1]) == null_test_argument) {
         if (argc != 4) {

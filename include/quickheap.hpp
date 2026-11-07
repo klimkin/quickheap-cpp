@@ -17,20 +17,16 @@ namespace detail {
 
 template <typename T> struct Ops;
 
-#define QUICKHEAP_DEFINE_OPS(T, Handle, prefix)                                \
-    template <> struct Ops<T> {                                                \
-        using Handle_t = Handle;                                               \
-        static Handle_t *create() { return prefix##_new(); }                   \
-        static void destroy(Handle_t *h) { prefix##_free(h); }                 \
-        static void push(Handle_t *h, T v) { prefix##_push(h, v); }            \
-        static bool pop(Handle_t *h, T *out) { return prefix##_pop(h, out); }  \
-        static std::size_t len(const Handle_t *h) { return prefix##_len(h); }  \
-        static bool is_empty(const Handle_t *h) {                              \
-            return prefix##_is_empty(h);                                       \
-        }                                                                      \
-        static std::size_t capacity(const Handle_t *h) {                       \
-            return prefix##_capacity(h);                                       \
-        }                                                                      \
+#define QUICKHEAP_DEFINE_OPS(T, Handle, prefix)                                                    \
+    template <> struct Ops<T> {                                                                    \
+        using Handle_t = Handle;                                                                   \
+        static Handle_t* create() { return prefix##_new(); }                                       \
+        static void destroy(Handle_t* h) { prefix##_free(h); }                                     \
+        static void push(Handle_t* h, T v) { prefix##_push(h, v); }                                \
+        static bool pop(Handle_t* h, T* out) { return prefix##_pop(h, out); }                      \
+        static std::size_t len(const Handle_t* h) { return prefix##_len(h); }                      \
+        static bool is_empty(const Handle_t* h) { return prefix##_is_empty(h); }                   \
+        static std::size_t capacity(const Handle_t* h) { return prefix##_capacity(h); }            \
     };
 
 QUICKHEAP_DEFINE_OPS(std::int32_t, QuickHeapI32, quickheap_i32)
@@ -60,12 +56,12 @@ template <typename T> class Heap {
         }
     }
 
-    Heap(const Heap &) = delete;
-    Heap &operator=(const Heap &) = delete;
+    Heap(const Heap&) = delete;
+    Heap& operator=(const Heap&) = delete;
 
-    Heap(Heap &&other) noexcept : ptr_(other.ptr_) { other.ptr_ = nullptr; }
+    Heap(Heap&& other) noexcept : ptr_(other.ptr_) { other.ptr_ = nullptr; }
 
-    Heap &operator=(Heap &&other) noexcept {
+    Heap& operator=(Heap&& other) noexcept {
         if (this != &other) {
             if (ptr_ != nullptr) {
                 Ops::destroy(ptr_);
@@ -109,7 +105,7 @@ template <typename T> class Heap {
     std::size_t capacity() const { return Ops::capacity(ptr_); }
 
   private:
-    Handle *ptr_;
+    Handle* ptr_;
 };
 
 }

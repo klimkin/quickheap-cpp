@@ -57,16 +57,20 @@ template <typename T> int run_trace() {
 
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     if (argc != 2) {
         std::cerr << "usage: quickheap_trace {i32|u32|i64|u64}\n";
         return 2;
     }
     const std::string type = argv[1];
-    if (type == "i32") return run_trace<std::int32_t>();
-    if (type == "u32") return run_trace<std::uint32_t>();
-    if (type == "i64") return run_trace<std::int64_t>();
-    if (type == "u64") return run_trace<std::uint64_t>();
+    if (type == "i32")
+        return run_trace<std::int32_t>();
+    if (type == "u32")
+        return run_trace<std::uint32_t>();
+    if (type == "i64")
+        return run_trace<std::int64_t>();
+    if (type == "u64")
+        return run_trace<std::uint64_t>();
     std::cerr << "unknown type: " << type << '\n';
     return 2;
 }

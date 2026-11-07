@@ -13,8 +13,7 @@ namespace quickheap::detail {
 // Mirrors Rust `Vec<T>` for `Copy` element types: amortized growth, `set_len` over spare
 // capacity, and memmove-based `insert`. Storage comes from `operator new` instead of
 // `realloc` so a failed allocation throws `std::bad_alloc` and leaves the vector intact.
-template <class T>
-class Vec {
+template <class T> class Vec {
     static_assert(std::is_trivially_copyable_v<T>);
 
     T* ptr_ = nullptr;
@@ -40,7 +39,7 @@ class Vec {
         grow_to(std::max({cap_ * 2, len_ + additional, min_non_zero_cap}));
     }
 
-public:
+  public:
     Vec() noexcept = default;
 
     static Vec with_capacity(std::size_t cap) {
@@ -52,8 +51,7 @@ public:
     }
 
     Vec(Vec&& other) noexcept
-        : ptr_(std::exchange(other.ptr_, nullptr)),
-          len_(std::exchange(other.len_, 0)),
+        : ptr_(std::exchange(other.ptr_, nullptr)), len_(std::exchange(other.len_, 0)),
           cap_(std::exchange(other.cap_, 0)) {}
 
     Vec& operator=(Vec&& other) noexcept {

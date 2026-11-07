@@ -1,10 +1,10 @@
 #include "quickheap.h"
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 int main(void) {
-    QuickHeapI32 *heap = quickheap_i32_new();
+    QuickHeapI32* heap = quickheap_i32_new();
     int32_t value = 17;
     if (heap == NULL || quickheap_i32_pop(heap, &value) || value != 17) {
         return 1;

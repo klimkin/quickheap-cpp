@@ -11,8 +11,7 @@
 
 namespace {
 
-template <class Function>
-auto c_boundary(Function&& function) noexcept -> decltype(function()) {
+template <class Function> auto c_boundary(Function&& function) noexcept -> decltype(function()) {
     try {
         return function();
     } catch (...) {
@@ -20,8 +19,7 @@ auto c_boundary(Function&& function) noexcept -> decltype(function()) {
     }
 }
 
-template <class T>
-T& require_pointer(T* pointer) noexcept {
+template <class T> T& require_pointer(T* pointer) noexcept {
     if (pointer == nullptr) {
         std::abort();
     }
@@ -30,36 +28,36 @@ T& require_pointer(T* pointer) noexcept {
 
 }
 
-#define QUICKHEAP_DEFINE_C(T, Handle, prefix)                                 \
-    struct Handle {                                                         \
-        quickheap::detail::SimdQuickHeap<T> heap;                            \
-    };                                                                      \
-    extern "C" {                                                            \
-    Handle* prefix##_new(void) {                                             \
-        return c_boundary([] { return new Handle; });                       \
-    }                                                                       \
-    void prefix##_free(Handle* pointer) {                                    \
-        c_boundary([&] { delete &require_pointer(pointer); });              \
-    }                                                                       \
-    void prefix##_push(Handle* pointer, T value) {                            \
-        c_boundary([&] { require_pointer(pointer).heap.push(value); });       \
-    }                                                                       \
-    bool prefix##_pop(Handle* pointer, T* output) {                           \
-        return c_boundary([&] {                                             \
-            auto& heap = require_pointer(pointer).heap;                     \
-            auto& destination = require_pointer(output);                   \
-            return heap.pop_into(destination);                              \
-        });                                                                 \
-    }                                                                       \
-    uintptr_t prefix##_len(const Handle* pointer) {                          \
-        return c_boundary([&] { return require_pointer(pointer).heap.size(); }); \
-    }                                                                       \
-    bool prefix##_is_empty(const Handle* pointer) {                          \
-        return c_boundary([&] { return require_pointer(pointer).heap.empty(); }); \
-    }                                                                       \
-    uintptr_t prefix##_capacity(const Handle* pointer) {                     \
-        return c_boundary([&] { return require_pointer(pointer).heap.capacity(); }); \
-    }                                                                       \
+#define QUICKHEAP_DEFINE_C(T, Handle, prefix)                                                      \
+    struct Handle {                                                                                \
+        quickheap::detail::SimdQuickHeap<T> heap;                                                  \
+    };                                                                                             \
+    extern "C" {                                                                                   \
+    Handle* prefix##_new(void) {                                                                   \
+        return c_boundary([] { return new Handle; });                                              \
+    }                                                                                              \
+    void prefix##_free(Handle* pointer) {                                                          \
+        c_boundary([&] { delete &require_pointer(pointer); });                                     \
+    }                                                                                              \
+    void prefix##_push(Handle* pointer, T value) {                                                 \
+        c_boundary([&] { require_pointer(pointer).heap.push(value); });                            \
+    }                                                                                              \
+    bool prefix##_pop(Handle* pointer, T* output) {                                                \
+        return c_boundary([&] {                                                                    \
+            auto& heap = require_pointer(pointer).heap;                                            \
+            auto& destination = require_pointer(output);                                           \
+            return heap.pop_into(destination);                                                     \
+        });                                                                                        \
+    }                                                                                              \
+    uintptr_t prefix##_len(const Handle* pointer) {                                                \
+        return c_boundary([&] { return require_pointer(pointer).heap.size(); });                   \
+    }                                                                                              \
+    bool prefix##_is_empty(const Handle* pointer) {                                                \
+        return c_boundary([&] { return require_pointer(pointer).heap.empty(); });                  \
+    }                                                                                              \
+    uintptr_t prefix##_capacity(const Handle* pointer) {                                           \
+        return c_boundary([&] { return require_pointer(pointer).heap.capacity(); });               \
+    }                                                                                              \
     }
 
 QUICKHEAP_DEFINE_C(std::int32_t, QuickHeapI32, quickheap_i32)
@@ -71,31 +69,23 @@ QUICKHEAP_DEFINE_C(std::uint64_t, QuickHeapU64, quickheap_u64)
 
 namespace quickheap {
 
-template <class T>
-class KvSimdQuickHeap<T>::Impl {
-public:
+template <class T> class KvSimdQuickHeap<T>::Impl {
+  public:
     detail::KvSimdQuickHeap<T> heap;
 };
 
-template <class T>
-KvSimdQuickHeap<T>::KvSimdQuickHeap() : impl_(std::make_unique<Impl>()) {}
+template <class T> KvSimdQuickHeap<T>::KvSimdQuickHeap() : impl_(std::make_unique<Impl>()) {}
 
-template <class T>
-KvSimdQuickHeap<T>::~KvSimdQuickHeap() = default;
+template <class T> KvSimdQuickHeap<T>::~KvSimdQuickHeap() = default;
 
-template <class T>
-KvSimdQuickHeap<T>::KvSimdQuickHeap(KvSimdQuickHeap&&) noexcept = default;
+template <class T> KvSimdQuickHeap<T>::KvSimdQuickHeap(KvSimdQuickHeap&&) noexcept = default;
 
 template <class T>
 KvSimdQuickHeap<T>& KvSimdQuickHeap<T>::operator=(KvSimdQuickHeap&&) noexcept = default;
 
-template <class T>
-void KvSimdQuickHeap<T>::push(T key, T value) {
-    impl_->heap.push(key, value);
-}
+template <class T> void KvSimdQuickHeap<T>::push(T key, T value) { impl_->heap.push(key, value); }
 
-template <class T>
-std::optional<std::pair<T, T>> KvSimdQuickHeap<T>::try_pop() {
+template <class T> std::optional<std::pair<T, T>> KvSimdQuickHeap<T>::try_pop() {
     std::pair<T, T> result;
     if (!impl_->heap.pop_into(result.first, result.second)) {
         return std::nullopt;
@@ -103,25 +93,17 @@ std::optional<std::pair<T, T>> KvSimdQuickHeap<T>::try_pop() {
     return result;
 }
 
-template <class T>
-std::pair<T, T> KvSimdQuickHeap<T>::pop() {
+template <class T> std::pair<T, T> KvSimdQuickHeap<T>::pop() {
     const auto result = try_pop();
     assert(result && "quickheap::KvSimdQuickHeap::pop() called on an empty heap");
     return *result;
 }
 
-template <class T>
-std::size_t KvSimdQuickHeap<T>::size() const {
-    return impl_->heap.size();
-}
+template <class T> std::size_t KvSimdQuickHeap<T>::size() const { return impl_->heap.size(); }
 
-template <class T>
-bool KvSimdQuickHeap<T>::empty() const {
-    return impl_->heap.empty();
-}
+template <class T> bool KvSimdQuickHeap<T>::empty() const { return impl_->heap.empty(); }
 
-template <class T>
-std::size_t KvSimdQuickHeap<T>::capacity() const {
+template <class T> std::size_t KvSimdQuickHeap<T>::capacity() const {
     return impl_->heap.capacity();
 }
 

@@ -49,9 +49,12 @@ inline constexpr std::array workloads = {
 };
 
 template <typename T> constexpr std::string_view key_name() {
-    if constexpr (std::is_same_v<T, std::int32_t>) return "i32";
-    if constexpr (std::is_same_v<T, std::int64_t>) return "i64";
-    if constexpr (std::is_same_v<T, std::uint32_t>) return "u32";
+    if constexpr (std::is_same_v<T, std::int32_t>)
+        return "i32";
+    if constexpr (std::is_same_v<T, std::int64_t>)
+        return "i64";
+    if constexpr (std::is_same_v<T, std::uint32_t>)
+        return "u32";
     return "u64";
 }
 
@@ -61,7 +64,8 @@ template <typename T> constexpr T key_from_bits(std::make_unsigned_t<T> bits) {
     } else {
         using U = std::make_unsigned_t<T>;
         constexpr U sign = U{1} << (std::numeric_limits<U>::digits - 1);
-        if (bits < sign) return static_cast<T>(bits);
+        if (bits < sign)
+            return static_cast<T>(bits);
         return static_cast<T>(std::numeric_limits<T>::min() + static_cast<T>(bits - sign));
     }
 }
@@ -69,7 +73,8 @@ template <typename T> constexpr T key_from_bits(std::make_unsigned_t<T> bits) {
 template <typename T> constexpr std::optional<T> add_positive(T base, std::uint64_t offset) {
     using U = std::make_unsigned_t<T>;
     const U room = static_cast<U>(std::numeric_limits<T>::max()) - static_cast<U>(base);
-    if (offset > static_cast<std::uint64_t>(room)) return std::nullopt;
+    if (offset > static_cast<std::uint64_t>(room))
+        return std::nullopt;
     return key_from_bits<T>(static_cast<U>(static_cast<U>(base) + static_cast<U>(offset)));
 }
 
@@ -79,9 +84,9 @@ template <typename T> constexpr T payload(T key) {
 }
 
 template <typename T> constexpr T key_of(T item) { return item; }
-template <typename T> constexpr T key_of(const std::pair<T, T> &item) { return item.first; }
+template <typename T> constexpr T key_of(const std::pair<T, T>& item) { return item.first; }
 template <typename T> constexpr bool valid_payload(T) { return true; }
-template <typename T> constexpr bool valid_payload(const std::pair<T, T> &item) {
+template <typename T> constexpr bool valid_payload(const std::pair<T, T>& item) {
     return item.second == payload(item.first);
 }
 
@@ -151,13 +156,12 @@ template <typename T> class PlanBuilder {
 
   private:
     Plan<T> plan_;
-    Script<T> *current_ = &plan_.setup;
+    Script<T>* current_ = &plan_.setup;
     std::priority_queue<T, std::vector<T>, std::greater<T>> reference_;
 };
 
 template <typename T> constexpr std::uint64_t stride() {
-    return sizeof(T) == 4 ? (std::uint64_t{1} << 24)
-                          : (std::uint64_t{1} << 48);
+    return sizeof(T) == 4 ? (std::uint64_t{1} << 24) : (std::uint64_t{1} << 48);
 }
 
 template <typename T> Plan<T> make_plan(Workload workload, std::size_t n) {
@@ -174,29 +178,36 @@ template <typename T> Plan<T> make_plan(Workload workload, std::size_t n) {
     };
     const auto full_key = [&rng]() {
         T key = key_from_bits<T>(static_cast<std::make_unsigned_t<T>>(rng()));
-        if (key == std::numeric_limits<T>::min()) ++key;
-        if (key == std::numeric_limits<T>::max()) --key;
+        if (key == std::numeric_limits<T>::min())
+            ++key;
+        if (key == std::numeric_limits<T>::max())
+            --key;
         return key;
     };
 
     switch (workload) {
     case Workload::HeapSort:
         b.timed();
-        for (std::size_t i = 0; i < n; ++i) b.push(full_key());
-        for (std::size_t i = 0; i < n; ++i) b.pop();
+        for (std::size_t i = 0; i < n; ++i)
+            b.push(full_key());
+        for (std::size_t i = 0; i < n; ++i)
+            b.pop();
         break;
 
     case Workload::MonotoneConstantSize: {
         T last = 0;
         for (std::size_t i = 0; i < n + 50; ++i) {
-            if (!b.push_sum(last, offset(stride<T>()))) return b.finish();
+            if (!b.push_sum(last, offset(stride<T>())))
+                return b.finish();
             last = b.pop();
-            if (!b.push_sum(last, offset(stride<T>()))) return b.finish();
+            if (!b.push_sum(last, offset(stride<T>())))
+                return b.finish();
         }
         b.timed();
         for (std::size_t i = 0; i < 10 * n; ++i) {
             last = b.pop();
-            if (!b.push_sum(last, offset(stride<T>()))) return b.finish();
+            if (!b.push_sum(last, offset(stride<T>())))
+                return b.finish();
         }
         break;
     }
@@ -216,22 +227,24 @@ template <typename T> Plan<T> make_plan(Workload workload, std::size_t n) {
 
     case Workload::MonotoneWiggle:
     case Workload::GeometricMonotoneWiggle: {
-        std::geometric_distribution<std::uint64_t> geometric(
-            1.0 / static_cast<double>(stride<T>()));
+        std::geometric_distribution<std::uint64_t> geometric(1.0 /
+                                                             static_cast<double>(stride<T>()));
         const auto next_offset = [&]() {
-            return workload == Workload::MonotoneWiggle ? offset(stride<T>())
-                                                         : geometric(rng);
+            return workload == Workload::MonotoneWiggle ? offset(stride<T>()) : geometric(rng);
         };
         T last = 0;
         b.timed();
         for (std::size_t i = 0; i < n; ++i) {
-            if (!b.push_sum(last, next_offset())) return b.finish();
+            if (!b.push_sum(last, next_offset()))
+                return b.finish();
             last = b.pop();
-            if (!b.push_sum(last, next_offset())) return b.finish();
+            if (!b.push_sum(last, next_offset()))
+                return b.finish();
         }
         for (std::size_t i = 0; i < n; ++i) {
             last = b.pop();
-            if (!b.push_sum(last, next_offset())) return b.finish();
+            if (!b.push_sum(last, next_offset()))
+                return b.finish();
             b.pop();
         }
         break;
@@ -260,12 +273,14 @@ template <typename T> Plan<T> make_plan(Workload workload, std::size_t n) {
         for (std::size_t i = 0; i < n; ++i) {
             for (std::size_t j = 0; j < pushes_per_round; ++j) {
                 const auto descending = total_pushes - 1 - i * pushes_per_round - j;
-                b.push(random_key(rng) ? key_from_bits<T>(static_cast<std::make_unsigned_t<T>>(rng()))
-                                       : static_cast<T>(descending));
+                b.push(random_key(rng)
+                           ? key_from_bits<T>(static_cast<std::make_unsigned_t<T>>(rng()))
+                           : static_cast<T>(descending));
             }
             b.pop();
         }
-        for (std::size_t i = 0; i < n * (k / 2); ++i) b.pop();
+        for (std::size_t i = 0; i < n * (k / 2); ++i)
+            b.pop();
         break;
     }
 
@@ -278,12 +293,15 @@ template <typename T> Plan<T> make_plan(Workload workload, std::size_t n) {
         std::size_t index = 0;
         b.timed();
         for (std::size_t i = 0; i < n; ++i) {
-            for (std::size_t j = 0; j < 4; ++j) b.push(values[index++]);
+            for (std::size_t j = 0; j < 4; ++j)
+                b.push(values[index++]);
             b.pop();
-            for (std::size_t j = 0; j < 6; ++j) b.push(values[index++]);
+            for (std::size_t j = 0; j < 6; ++j)
+                b.push(values[index++]);
             b.pop();
         }
-        for (std::size_t i = 0; i < 8 * n; ++i) b.pop();
+        for (std::size_t i = 0; i < 8 * n; ++i)
+            b.pop();
         break;
     }
     }
@@ -315,7 +333,7 @@ template <typename T> class KvQuickHeap {
 };
 
 template <typename Q, typename T>
-bool replay(const Script<T> &script, Q &queue, std::vector<typename Q::Item> *outputs) {
+bool replay(const Script<T>& script, Q& queue, std::vector<typename Q::Item>* outputs) {
     std::size_t push_index = 0;
     std::size_t pop_index = 0;
     for (const std::uint8_t operation : script.operations) {
@@ -323,7 +341,8 @@ bool replay(const Script<T> &script, Q &queue, std::vector<typename Q::Item> *ou
             queue.push(script.pushes[push_index++]);
         } else {
             const auto item = queue.try_pop();
-            if (!item) return false;
+            if (!item)
+                return false;
             if (outputs) {
                 (*outputs)[pop_index] = *item;
             } else if (key_of(*item) != script.expected_pops[pop_index] || !valid_payload(*item)) {
@@ -340,25 +359,28 @@ template <typename Q, typename T> struct Run {
     std::vector<typename Q::Item> outputs;
     bool replay_ok = false;
 
-    void execute(const Plan<T> &plan) { replay_ok = replay(plan.timed, queue, &outputs); }
+    void execute(const Plan<T>& plan) { replay_ok = replay(plan.timed, queue, &outputs); }
 };
 
-template <typename Q, typename T> Run<Q, T> prepare(const Plan<T> &plan, Q queue = {}) {
-    if (!plan.error.empty()) throw std::runtime_error(plan.error);
-    Run<Q, T> run{std::move(queue), std::vector<typename Q::Item>(plan.timed.expected_pops.size()), false};
-    if (!replay(plan.setup, run.queue, static_cast<std::vector<typename Q::Item> *>(nullptr)) ||
+template <typename Q, typename T> Run<Q, T> prepare(const Plan<T>& plan, Q queue = {}) {
+    if (!plan.error.empty())
+        throw std::runtime_error(plan.error);
+    Run<Q, T> run{std::move(queue), std::vector<typename Q::Item>(plan.timed.expected_pops.size()),
+                  false};
+    if (!replay(plan.setup, run.queue, static_cast<std::vector<typename Q::Item>*>(nullptr)) ||
         run.queue.size() != plan.setup_size) {
         throw std::runtime_error("heap disagrees with workload setup");
     }
     return run;
 }
 
-template <typename Q, typename T> void verify(const Plan<T> &plan, Run<Q, T> &run) {
+template <typename Q, typename T> void verify(const Plan<T>& plan, Run<Q, T>& run) {
     if (!run.replay_ok || run.queue.size() != plan.final_size) {
         throw std::runtime_error("heap replay or final size disagrees with workload");
     }
     for (std::size_t i = 0; i < run.outputs.size(); ++i) {
-        if (key_of(run.outputs[i]) != plan.timed.expected_pops[i] || !valid_payload(run.outputs[i])) {
+        if (key_of(run.outputs[i]) != plan.timed.expected_pops[i] ||
+            !valid_payload(run.outputs[i])) {
             throw std::runtime_error("heap popped key or payload disagrees with workload");
         }
     }
@@ -368,7 +390,8 @@ template <typename Q, typename T> void verify(const Plan<T> &plan, Run<Q, T> &ru
             throw std::runtime_error("heap final key or payload disagrees with workload");
         }
     }
-    if (run.queue.size() != 0) throw std::runtime_error("heap retained unexpected final keys");
+    if (run.queue.size() != 0)
+        throw std::runtime_error("heap retained unexpected final keys");
 }
 
 }
