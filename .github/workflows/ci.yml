@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CONAN_VERSION: "2.34.0"
+  LLVM_TOOLS_VERSION: "23.1.4"
+  SOURCES: "include src test test_package"
+
+jobs:
+  clang-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install clang-format
+        run: pipx install "clang-format==${LLVM_TOOLS_VERSION}"
+      - name: Check formatting
+        run: |
+          git ls-files -z -- $SOURCES | grep -zE '\.(c|cpp|h|hpp)$' \
+            | xargs -0 clang-format --dry-run -Werror
+
+  clang-tidy:
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install tools
+        run: |
+          pipx install "conan==${CONAN_VERSION}"
+          pipx install "clang-tidy==${LLVM_TOOLS_VERSION}"
+      - name: Detect Conan profile
+        run: conan profile detect
+      - name: Generate compilation database
+        run: |
+          conan install . -of build --build=missing --lockfile="" \
+            -s:h compiler.cppstd=20
+          source build/build/Release/generators/conanbuild.sh
+          cmake --preset conan-release
+      - name: Run clang-tidy
+        run: |
+          git ls-files -z -- src test | grep -zE '\.(c|cpp)$' \
+            | xargs -0 run-clang-tidy.py -quiet -p build/build/Release
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - { name: gcc, cc: gcc, cxx: g++ }
+          - { name: clang, cc: clang, cxx: clang++ }
+        scalar: [false, true]
+    name: build-and-test (${{ matrix.compiler.name }}, scalar=${{ matrix.scalar }})
+    env:
+      CC: ${{ matrix.compiler.cc }}
+      CXX: ${{ matrix.compiler.cxx }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Conan
+        run: pipx install "conan==${CONAN_VERSION}"
+      - name: Detect Conan profile
+        run: conan profile detect
+      - name: Build and run unit tests
+        run: |
+          conan build . -of build --build=missing --lockfile="" \
+            -s:h compiler.cppstd=20 \
+            -o:h "quickheap/*:scalar=${{ matrix.scalar && 'True' || 'False' }}"

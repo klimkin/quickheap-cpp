@@ -1,0 +1,16 @@
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-macro-parentheses,
+  -bugprone-signed-bitwise,
+  -bugprone-unchecked-optional-access,
+  clang-analyzer-*,
+  performance-*,
+  -performance-enum-size,
+  portability-*,
+  -portability-avoid-pragma-once
+CheckOptions:
+  bugprone-sizeof-expression.WarnOnSizeOfInLoopTermination: false
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*'
