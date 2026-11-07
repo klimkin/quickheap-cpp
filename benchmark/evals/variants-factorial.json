@@ -4,7 +4,7 @@
  "sections": [
   {
    "heading": "C++ screening, 2^(10-5)",
-   "text": "Main effects and two-factor alias chains. The dummy row is the noise floor from code layout alone.",
+   "text": "Main effects and two-factor alias chains. The dummy row is the noise floor from code layout alone. This run predates commit c0b322d, which sorts C++ layers of 21 to 32 keys with Rust std's network sort instead of insertion sort, so its A7 row understates A7.",
    "directory": "/tmp/qhv/screen-cpp",
    "kind": "screening"
   },
@@ -16,8 +16,8 @@
   },
   {
    "heading": "C++ follow-up, 2^(6-1) on A1 A2 A4 A5 A6 A7",
-   "text": "A3, A8 and A9 held off. Every two-factor interaction is clear of other two-factor interactions.",
-   "directory": "/tmp/qhv/follow-cpp",
+   "text": "A3, A8 and A9 held off. Every two-factor interaction is clear of other two-factor interactions. Measured after commit c0b322d. Before it, C++ sorted 21 to 32 key layers with insertion sort and A7 measured −8.3% overall instead of −16.8%.",
+   "directory": "/tmp/qhv/follow-cpp2",
    "kind": "half",
    "factors": [
     "A1",
@@ -45,7 +45,7 @@
   {
    "heading": "C++ predicted best combinations",
    "text": "Main effects plus two-factor interactions from the follow-up, all 64 combinations against all off, best 10 shown.",
-   "directory": "/tmp/qhv/follow-cpp",
+   "directory": "/tmp/qhv/follow-cpp2",
    "kind": "predict",
    "design": "half",
    "factors": [
@@ -76,8 +76,8 @@
   },
   {
    "heading": "C++ confirmation, measured against Opts 0",
-   "text": "Seven sequential passes on CPU 3, nine Opts values in a shuffled order per pass. Opts 203 was not measured in the follow-up. It measured −20.8% [−21.1, −20.4] against a predicted −20.2%. Paired across passes, adding A4 to A1+A2+A6+A7 changes the overall time by −0.6% [−1.3, +0.1], adding A3 by +0.2% (not significant), and adding A5 by +7.5% (PushDecr +20.7%).",
-   "directory": "/tmp/qhv/confirm-cpp",
+   "text": "Seven sequential passes on CPU 3, nine Opts values in a shuffled order per pass, measured after commit c0b322d. Opts 203 was not measured in the follow-up. It measured −25.1% [−25.2, −25.0] against a predicted −25.1%. Paired across passes, adding A4 to A1+A2+A6+A7 changes the overall time by −0.5% [−0.9, +0.0], adding A3 by +0.7% [+0.2, +1.2], and adding A5 by +1.6% [+1.3, +2.0] (PushDecr +15.7%). Before the fix, Opts 203 measured −20.8%.",
+   "directory": "/tmp/qhv/confirm-cpp2",
    "kind": "combinations"
   },
   {
