@@ -45,7 +45,7 @@ jobs:
         run: conan profile detect
       - name: Generate compilation database
         run: |
-          conan install . -of build --build=missing --lockfile="" \
+          conan install . -of build --build=missing \
             -s:h compiler.cppstd=20
           source build/build/Release/generators/conanbuild.sh
           cmake --preset conan-release
@@ -75,6 +75,6 @@ jobs:
         run: conan profile detect
       - name: Build and run unit tests
         run: |
-          conan build . -of build --build=missing --lockfile="" \
+          conan build . -of build --build=missing \
             -s:h compiler.cppstd=20 \
             -o:h "quickheap/*:scalar=${{ matrix.scalar && 'True' || 'False' }}"
