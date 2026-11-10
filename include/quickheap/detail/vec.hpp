@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
+#include <cstdlib>
 #include <cstring>
 #include <new>
 #include <type_traits>
@@ -11,10 +12,12 @@
 namespace quickheap::detail {
 
 // Mirrors Rust `Vec<T>` for `Copy` element types: amortized growth, `set_len` over spare
-// capacity, and memmove-based `insert`. Storage comes from `operator new` instead of
-// `realloc` so a failed allocation throws `std::bad_alloc` and leaves the vector intact.
+// capacity, and memmove-based `insert`. Growth uses `realloc` like Rust's global allocator,
+// so glibc can move a large block with `mremap` instead of faulting in fresh pages and copying.
+// A failed `realloc` leaves the old block intact, so the vector stays valid when it throws.
 template <class T> class Vec {
     static_assert(std::is_trivially_copyable_v<T>);
+    static_assert(alignof(T) <= alignof(std::max_align_t));
 
     T* ptr_ = nullptr;
     std::size_t len_ = 0;
@@ -23,11 +26,10 @@ template <class T> class Vec {
     static constexpr std::size_t min_non_zero_cap = sizeof(T) == 1 ? 8 : sizeof(T) <= 1024 ? 4 : 1;
 
     void grow_to(std::size_t cap) {
-        auto* ptr = static_cast<T*>(::operator new(cap * sizeof(T)));
-        if (len_ != 0) {
-            std::memcpy(ptr, ptr_, len_ * sizeof(T));
+        auto* ptr = static_cast<T*>(std::realloc(ptr_, cap * sizeof(T)));
+        if (ptr == nullptr) {
+            throw std::bad_alloc();
         }
-        ::operator delete(ptr_);
         ptr_ = ptr;
         cap_ = cap;
     }
@@ -62,7 +64,7 @@ template <class T> class Vec {
     Vec(const Vec&) = delete;
     Vec& operator=(const Vec&) = delete;
 
-    ~Vec() { ::operator delete(ptr_); }
+    ~Vec() { std::free(ptr_); }
 
     void swap(Vec& other) noexcept {
         std::swap(ptr_, other.ptr_);
