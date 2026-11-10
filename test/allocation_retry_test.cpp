@@ -6,13 +6,28 @@
 
 namespace {
 int allocations_before_failure = -1;
+
+bool take_allocation() {
+    if (allocations_before_failure == 0)
+        return false;
+    if (allocations_before_failure > 0)
+        --allocations_before_failure;
+    return true;
+}
+}
+
+// Layer vectors grow through `realloc`; the outer layer table grows through `operator new`.
+// Both draw from one budget, so a failure can land on either. `__libc_realloc` is glibc's
+// exported entry point to its own allocator.
+extern "C" void* __libc_realloc(void* storage, // NOLINT(bugprone-reserved-identifier)
+                                std::size_t count) noexcept;
+extern "C" void* realloc(void* storage, std::size_t count) noexcept {
+    return take_allocation() ? __libc_realloc(storage, count) : nullptr;
 }
 
 void* operator new(std::size_t count) {
-    if (allocations_before_failure == 0)
+    if (!take_allocation())
         throw std::bad_alloc();
-    if (allocations_before_failure > 0)
-        --allocations_before_failure;
     if (auto* storage = std::malloc(count == 0 ? 1 : count))
         return storage;
     throw std::bad_alloc();
