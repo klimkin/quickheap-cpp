@@ -22,7 +22,9 @@ jobs:
   clang-format:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install clang-format
         run: pipx install "clang-format==${LLVM_TOOLS_VERSION}"
       - name: Check formatting
@@ -36,7 +38,9 @@ jobs:
       CC: clang
       CXX: clang++
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install tools
         run: |
           pipx install "conan==${CONAN_VERSION}"
@@ -68,7 +72,9 @@ jobs:
       CC: ${{ matrix.compiler.cc }}
       CXX: ${{ matrix.compiler.cxx }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install Conan
         run: pipx install "conan==${CONAN_VERSION}"
       - name: Detect Conan profile
