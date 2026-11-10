@@ -14,15 +14,12 @@ namespace quickheap {
 
 /// Min-priority queue of matching integer keys and payloads.
 /// Equal-key payload order is unspecified.
-template <class T>
-class QUICKHEAP_API KvSimdQuickHeap {
-    static_assert(std::is_same_v<T, std::int32_t> ||
-                      std::is_same_v<T, std::uint32_t> ||
-                      std::is_same_v<T, std::int64_t> ||
-                      std::is_same_v<T, std::uint64_t>,
+template <class T> class QUICKHEAP_API KvSimdQuickHeap {
+    static_assert(std::is_same_v<T, std::int32_t> || std::is_same_v<T, std::uint32_t> ||
+                      std::is_same_v<T, std::int64_t> || std::is_same_v<T, std::uint64_t>,
                   "KvSimdQuickHeap requires a 32-bit or 64-bit integer type");
 
-public:
+  public:
     KvSimdQuickHeap();
     ~KvSimdQuickHeap();
     KvSimdQuickHeap(const KvSimdQuickHeap&) = delete;
@@ -41,7 +38,7 @@ public:
     /// Total allocated element slots across key and payload buckets.
     std::size_t capacity() const;
 
-private:
+  private:
     class Impl;
     std::unique_ptr<Impl> impl_;
 };

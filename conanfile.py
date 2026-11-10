@@ -3,6 +3,7 @@ import os
 from conan import ConanFile
 from conan.tools.build import check_min_cppstd
 from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
+from conan.tools.files import copy
 
 
 class QuickHeapConan(ConanFile):
@@ -24,6 +25,7 @@ class QuickHeapConan(ConanFile):
     }
     exports_sources = (
         "CMakeLists.txt",
+        "LICENSE",
         "include/*",
         "src/*",
         "test/*",
@@ -67,6 +69,7 @@ class QuickHeapConan(ConanFile):
         cmake.ctest()
 
     def package(self):
+        copy(self, "LICENSE", self.source_folder, os.path.join(self.package_folder, "licenses"))
         CMake(self).install()
 
     def package_info(self):

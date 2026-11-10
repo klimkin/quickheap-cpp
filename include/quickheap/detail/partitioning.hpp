@@ -18,8 +18,7 @@ constexpr std::size_t saturating_sub(std::size_t a, std::size_t b) noexcept {
 
 // Mirrors `partitioning::VecPartitioning`: splits `cur` around `pivot` in place, moving
 // the small side to the empty `next`. Full-register stores land in L spare slots.
-template <class T, class Backend>
-struct VecPartitioning {
+template <class T, class Backend> struct VecPartitioning {
     using S = SimdElem<T, Backend>;
     static constexpr std::size_t L = S::L;
 
@@ -43,13 +42,13 @@ struct VecPartitioning {
         T* const next_ptr = next_layer.data();
 
         for (std::size_t i = 0; i < n2; i += L) {
-            S::partition_fast(S::load(cur_ptr + i), threshold, pivot_pos,
-                              cur_ptr, cur_len, next_ptr, next_len);
+            S::partition_fast(S::load(cur_ptr + i), threshold, pivot_pos, cur_ptr, cur_len,
+                              next_ptr, next_len);
         }
 
         if (n2 < n) {
-            S::partition_slow(S::load(cur_ptr + n2), n - n2, threshold, pivot_pos,
-                              cur_ptr, cur_len, next_ptr, next_len);
+            S::partition_slow(S::load(cur_ptr + n2), n - n2, threshold, pivot_pos, cur_ptr, cur_len,
+                              next_ptr, next_len);
         }
 
         cur_layer.set_len(cur_len);
@@ -85,8 +84,8 @@ struct VecPartitioning {
 
         for (std::size_t i = 0; i < n2; i += L) {
             S::partition_fast_kv(S::load(cur_key_ptr + i), S::load(cur_val_ptr + i), threshold,
-                                 pivot_pos, cur_key_ptr, cur_val_ptr, cur_len,
-                                 next_key_ptr, next_val_ptr, next_len);
+                                 pivot_pos, cur_key_ptr, cur_val_ptr, cur_len, next_key_ptr,
+                                 next_val_ptr, next_len);
         }
 
         if (n2 < n) {

@@ -17,8 +17,7 @@ namespace quickheap::detail {
 // Mirrors `SimdQuickHeap` from the Rust crate's lib.rs. `pivots` decrease; `buckets[i]`
 // holds elements between pivots i-1 and i. The terminal layer `buckets[pivots.size()]`
 // stays sorted in decreasing order whenever it holds at most N elements.
-template <class T, class Backend = DefaultBackend>
-class SimdQuickHeap {
+template <class T, class Backend = DefaultBackend> class SimdQuickHeap {
     static constexpr std::size_t N = 16;
     static constexpr std::size_t L = SimdElem<T, Backend>::L;
 
@@ -68,7 +67,7 @@ class SimdQuickHeap {
         }
     }
 
-public:
+  public:
     std::size_t capacity() const noexcept {
         std::size_t total = 0;
         for (const auto& bucket : buckets_) {
@@ -86,7 +85,8 @@ public:
         auto& layer = buckets_[target_layer];
 
         if (target_layer == pivots_.size() && layer.size() < N) {
-            const auto pos = partition_point(layer.data(), layer.size(), [t](T x) { return x > t; });
+            const auto pos =
+                partition_point(layer.data(), layer.size(), [t](T x) { return x > t; });
             layer.insert(pos, t);
         } else {
             layer.push(t);
@@ -129,8 +129,7 @@ public:
 };
 
 // Mirrors `KvSimdQuickHeap` from lib.rs: keys and values live in parallel layers.
-template <class T, class Backend = DefaultBackend>
-class KvSimdQuickHeap {
+template <class T, class Backend = DefaultBackend> class KvSimdQuickHeap {
     static constexpr std::size_t N = 16;
     static constexpr std::size_t L = SimdElem<T, Backend>::L;
 
@@ -196,15 +195,15 @@ class KvSimdQuickHeap {
         }
         assert(n <= N);
         std::size_t stack_idx[N];
-        auto* heap_idx = static_cast<std::size_t*>(::operator new(n * sizeof(std::size_t), std::nothrow));
+        auto* heap_idx =
+            static_cast<std::size_t*>(::operator new(n * sizeof(std::size_t), std::nothrow));
         auto* idx = heap_idx != nullptr ? heap_idx : stack_idx;
         for (std::size_t i = 0; i < n; ++i) {
             idx[i] = i;
         }
         const T* key_data = keys.data();
-        sort_unstable_small(idx, n, [key_data](std::size_t a, std::size_t b) {
-            return key_data[a] > key_data[b];
-        });
+        sort_unstable_small(
+            idx, n, [key_data](std::size_t a, std::size_t b) { return key_data[a] > key_data[b]; });
 
         for (std::size_t i = 0; i < n; ++i) {
             if (idx[i] == i) {
@@ -229,7 +228,7 @@ class KvSimdQuickHeap {
         ::operator delete(heap_idx);
     }
 
-public:
+  public:
     std::size_t capacity() const noexcept {
         std::size_t total = 0;
         for (const auto& bucket : keys_) {

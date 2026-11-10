@@ -6,9 +6,9 @@
 #ifndef QUICKHEAP_H
 #define QUICKHEAP_H
 
+#include "export.hpp"
 #include <stdbool.h>
 #include <stdint.h>
-#include "export.hpp"
 
 /**
  * Opaque `SimdQuickHeap<i32>` handle.
@@ -39,17 +39,17 @@ extern "C" {
  *
  * Must be freed with `quickheap_i32_free`.
  */
-QUICKHEAP_API struct QuickHeapI32 *quickheap_i32_new(void);
+QUICKHEAP_API struct QuickHeapI32* quickheap_i32_new(void);
 
 /**
  * Free a heap previously created with `quickheap_i32_new`.
  */
-QUICKHEAP_API void quickheap_i32_free(struct QuickHeapI32 *ptr);
+QUICKHEAP_API void quickheap_i32_free(struct QuickHeapI32* ptr);
 
 /**
  * Push `value` onto the heap.
  */
-QUICKHEAP_API void quickheap_i32_push(struct QuickHeapI32 *ptr, int32_t value);
+QUICKHEAP_API void quickheap_i32_push(struct QuickHeapI32* ptr, int32_t value);
 
 /**
  * Pop the smallest value from the heap into `*out_value`.
@@ -57,39 +57,39 @@ QUICKHEAP_API void quickheap_i32_push(struct QuickHeapI32 *ptr, int32_t value);
  * Returns `true` and writes the popped value on success, or returns
  * `false` (leaving `*out_value` untouched) if the heap is empty.
  */
-QUICKHEAP_API bool quickheap_i32_pop(struct QuickHeapI32 *ptr, int32_t *out_value);
+QUICKHEAP_API bool quickheap_i32_pop(struct QuickHeapI32* ptr, int32_t* out_value);
 
 /**
  * Return the number of elements currently in the heap.
  */
-QUICKHEAP_API uintptr_t quickheap_i32_len(const struct QuickHeapI32 *ptr);
+QUICKHEAP_API uintptr_t quickheap_i32_len(const struct QuickHeapI32* ptr);
 
 /**
  * Return whether the heap is empty.
  */
-QUICKHEAP_API bool quickheap_i32_is_empty(const struct QuickHeapI32 *ptr);
+QUICKHEAP_API bool quickheap_i32_is_empty(const struct QuickHeapI32* ptr);
 
 /**
  * Return the total capacity currently allocated over all internal buckets.
  */
-QUICKHEAP_API uintptr_t quickheap_i32_capacity(const struct QuickHeapI32 *ptr);
+QUICKHEAP_API uintptr_t quickheap_i32_capacity(const struct QuickHeapI32* ptr);
 
 /**
  * Create a new, empty `SimdQuickHeap<u32>`.
  *
  * Must be freed with `quickheap_u32_free`.
  */
-QUICKHEAP_API struct QuickHeapU32 *quickheap_u32_new(void);
+QUICKHEAP_API struct QuickHeapU32* quickheap_u32_new(void);
 
 /**
  * Free a heap previously created with `quickheap_u32_new`.
  */
-QUICKHEAP_API void quickheap_u32_free(struct QuickHeapU32 *ptr);
+QUICKHEAP_API void quickheap_u32_free(struct QuickHeapU32* ptr);
 
 /**
  * Push `value` onto the heap.
  */
-QUICKHEAP_API void quickheap_u32_push(struct QuickHeapU32 *ptr, uint32_t value);
+QUICKHEAP_API void quickheap_u32_push(struct QuickHeapU32* ptr, uint32_t value);
 
 /**
  * Pop the smallest value from the heap into `*out_value`.
@@ -97,39 +97,39 @@ QUICKHEAP_API void quickheap_u32_push(struct QuickHeapU32 *ptr, uint32_t value);
  * Returns `true` and writes the popped value on success, or returns
  * `false` (leaving `*out_value` untouched) if the heap is empty.
  */
-QUICKHEAP_API bool quickheap_u32_pop(struct QuickHeapU32 *ptr, uint32_t *out_value);
+QUICKHEAP_API bool quickheap_u32_pop(struct QuickHeapU32* ptr, uint32_t* out_value);
 
 /**
  * Return the number of elements currently in the heap.
  */
-QUICKHEAP_API uintptr_t quickheap_u32_len(const struct QuickHeapU32 *ptr);
+QUICKHEAP_API uintptr_t quickheap_u32_len(const struct QuickHeapU32* ptr);
 
 /**
  * Return whether the heap is empty.
  */
-QUICKHEAP_API bool quickheap_u32_is_empty(const struct QuickHeapU32 *ptr);
+QUICKHEAP_API bool quickheap_u32_is_empty(const struct QuickHeapU32* ptr);
 
 /**
  * Return the total capacity currently allocated over all internal buckets.
  */
-QUICKHEAP_API uintptr_t quickheap_u32_capacity(const struct QuickHeapU32 *ptr);
+QUICKHEAP_API uintptr_t quickheap_u32_capacity(const struct QuickHeapU32* ptr);
 
 /**
  * Create a new, empty `SimdQuickHeap<i64>`.
  *
  * Must be freed with `quickheap_i64_free`.
  */
-QUICKHEAP_API struct QuickHeapI64 *quickheap_i64_new(void);
+QUICKHEAP_API struct QuickHeapI64* quickheap_i64_new(void);
 
 /**
  * Free a heap previously created with `quickheap_i64_new`.
  */
-QUICKHEAP_API void quickheap_i64_free(struct QuickHeapI64 *ptr);
+QUICKHEAP_API void quickheap_i64_free(struct QuickHeapI64* ptr);
 
 /**
  * Push `value` onto the heap.
  */
-QUICKHEAP_API void quickheap_i64_push(struct QuickHeapI64 *ptr, int64_t value);
+QUICKHEAP_API void quickheap_i64_push(struct QuickHeapI64* ptr, int64_t value);
 
 /**
  * Pop the smallest value from the heap into `*out_value`.
@@ -137,39 +137,39 @@ QUICKHEAP_API void quickheap_i64_push(struct QuickHeapI64 *ptr, int64_t value);
  * Returns `true` and writes the popped value on success, or returns
  * `false` (leaving `*out_value` untouched) if the heap is empty.
  */
-QUICKHEAP_API bool quickheap_i64_pop(struct QuickHeapI64 *ptr, int64_t *out_value);
+QUICKHEAP_API bool quickheap_i64_pop(struct QuickHeapI64* ptr, int64_t* out_value);
 
 /**
  * Return the number of elements currently in the heap.
  */
-QUICKHEAP_API uintptr_t quickheap_i64_len(const struct QuickHeapI64 *ptr);
+QUICKHEAP_API uintptr_t quickheap_i64_len(const struct QuickHeapI64* ptr);
 
 /**
  * Return whether the heap is empty.
  */
-QUICKHEAP_API bool quickheap_i64_is_empty(const struct QuickHeapI64 *ptr);
+QUICKHEAP_API bool quickheap_i64_is_empty(const struct QuickHeapI64* ptr);
 
 /**
  * Return the total capacity currently allocated over all internal buckets.
  */
-QUICKHEAP_API uintptr_t quickheap_i64_capacity(const struct QuickHeapI64 *ptr);
+QUICKHEAP_API uintptr_t quickheap_i64_capacity(const struct QuickHeapI64* ptr);
 
 /**
  * Create a new, empty `SimdQuickHeap<u64>`.
  *
  * Must be freed with `quickheap_u64_free`.
  */
-QUICKHEAP_API struct QuickHeapU64 *quickheap_u64_new(void);
+QUICKHEAP_API struct QuickHeapU64* quickheap_u64_new(void);
 
 /**
  * Free a heap previously created with `quickheap_u64_new`.
  */
-QUICKHEAP_API void quickheap_u64_free(struct QuickHeapU64 *ptr);
+QUICKHEAP_API void quickheap_u64_free(struct QuickHeapU64* ptr);
 
 /**
  * Push `value` onto the heap.
  */
-QUICKHEAP_API void quickheap_u64_push(struct QuickHeapU64 *ptr, uint64_t value);
+QUICKHEAP_API void quickheap_u64_push(struct QuickHeapU64* ptr, uint64_t value);
 
 /**
  * Pop the smallest value from the heap into `*out_value`.
@@ -177,25 +177,25 @@ QUICKHEAP_API void quickheap_u64_push(struct QuickHeapU64 *ptr, uint64_t value);
  * Returns `true` and writes the popped value on success, or returns
  * `false` (leaving `*out_value` untouched) if the heap is empty.
  */
-QUICKHEAP_API bool quickheap_u64_pop(struct QuickHeapU64 *ptr, uint64_t *out_value);
+QUICKHEAP_API bool quickheap_u64_pop(struct QuickHeapU64* ptr, uint64_t* out_value);
 
 /**
  * Return the number of elements currently in the heap.
  */
-QUICKHEAP_API uintptr_t quickheap_u64_len(const struct QuickHeapU64 *ptr);
+QUICKHEAP_API uintptr_t quickheap_u64_len(const struct QuickHeapU64* ptr);
 
 /**
  * Return whether the heap is empty.
  */
-QUICKHEAP_API bool quickheap_u64_is_empty(const struct QuickHeapU64 *ptr);
+QUICKHEAP_API bool quickheap_u64_is_empty(const struct QuickHeapU64* ptr);
 
 /**
  * Return the total capacity currently allocated over all internal buckets.
  */
-QUICKHEAP_API uintptr_t quickheap_u64_capacity(const struct QuickHeapU64 *ptr);
+QUICKHEAP_API uintptr_t quickheap_u64_capacity(const struct QuickHeapU64* ptr);
 
 #ifdef __cplusplus
-}  // extern "C"
+} // extern "C"
 #endif
 
-#endif  /* QUICKHEAP_H */
+#endif /* QUICKHEAP_H */

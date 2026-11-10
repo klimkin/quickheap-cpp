@@ -9,9 +9,12 @@ int allocations_before_failure = -1;
 }
 
 void* operator new(std::size_t count) {
-    if (allocations_before_failure == 0) throw std::bad_alloc();
-    if (allocations_before_failure > 0) --allocations_before_failure;
-    if (auto* storage = std::malloc(count == 0 ? 1 : count)) return storage;
+    if (allocations_before_failure == 0)
+        throw std::bad_alloc();
+    if (allocations_before_failure > 0)
+        --allocations_before_failure;
+    if (auto* storage = std::malloc(count == 0 ? 1 : count))
+        return storage;
     throw std::bad_alloc();
 }
 

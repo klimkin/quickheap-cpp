@@ -180,3 +180,7 @@ python3 scripts/differential.py build/Release/test/quickheap_trace
 Rust is needed only for this comparison. See
 [verification instructions](docs/verification.md) for package configurations
 and platform coverage.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

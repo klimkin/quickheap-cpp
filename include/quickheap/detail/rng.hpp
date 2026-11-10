@@ -50,10 +50,14 @@ class ThreadRng {
     }
 
     static void quarter_round(u32x4& a, u32x4& b, u32x4& c, u32x4& d) noexcept {
-        a += b; d = rotl(d ^ a, 16);
-        c += d; b = rotl(b ^ c, 12);
-        a += b; d = rotl(d ^ a, 8);
-        c += d; b = rotl(b ^ c, 7);
+        a += b;
+        d = rotl(d ^ a, 16);
+        c += d;
+        b = rotl(b ^ c, 12);
+        a += b;
+        d = rotl(d ^ a, 8);
+        c += d;
+        b = rotl(b ^ c, 7);
     }
 
     [[gnu::noinline]] void reseed() {
@@ -110,7 +114,7 @@ class ThreadRng {
         results_[0] = buffer_size;
     }
 
-public:
+  public:
     static ThreadRng& get() {
         thread_local ThreadRng rng;
         return rng;
@@ -154,8 +158,8 @@ inline std::size_t random_range(std::size_t high) noexcept {
     auto result = static_cast<std::uint32_t>(wide >> 32);
     const auto lo = static_cast<std::uint32_t>(wide);
     if (lo > static_cast<std::uint32_t>(0u - range)) {
-        const auto new_hi = static_cast<std::uint32_t>(
-            (static_cast<std::uint64_t>(rng.next_u32()) * range) >> 32);
+        const auto new_hi =
+            static_cast<std::uint32_t>((static_cast<std::uint64_t>(rng.next_u32()) * range) >> 32);
         result += static_cast<std::uint32_t>(lo + new_hi) < lo;
     }
     return result;

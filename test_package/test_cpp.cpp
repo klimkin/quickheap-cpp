@@ -16,8 +16,8 @@ int main() {
     pairs.push(2, 7);
     const auto first = pairs.try_pop();
     const auto second = pairs.try_pop();
-    if (!first || !second || *first != std::make_pair(2, 7) ||
-        *second != std::make_pair(9, 42) || pairs.try_pop()) {
+    if (!first || !second || *first != std::make_pair(2, 7) || *second != std::make_pair(9, 42) ||
+        pairs.try_pop()) {
         return 2;
     }
     return 0;

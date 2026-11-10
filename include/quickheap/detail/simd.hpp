@@ -45,8 +45,7 @@ inline constexpr auto equal_masks = [] {
 
 // Row `drop` packs the lanes whose bit is clear in `drop` to the front, as 32-bit
 // permute indices (two per 64-bit lane).
-template <std::size_t Lanes>
-constexpr auto make_uniqshuf() {
+template <std::size_t Lanes> constexpr auto make_uniqshuf() {
     constexpr std::size_t words_per_lane = 8 / Lanes;
     std::array<std::array<std::int32_t, 8>, std::size_t{1} << Lanes> table{};
     for (std::size_t drop = 0; drop < table.size(); ++drop) {
@@ -68,13 +67,11 @@ alignas(32) inline constexpr auto uniqshuf64 = make_uniqshuf<4>();
 struct Avx2;
 struct Scalar;
 
-template <class T, class Backend>
-struct Lanes;
+template <class T, class Backend> struct Lanes;
 
 #if defined(QUICKHEAP_AVX2_BACKEND)
 
-template <class T>
-struct Lanes<T, Avx2> {
+template <class T> struct Lanes<T, Avx2> {
     static_assert(std::is_integral_v<T> && (sizeof(T) == 4 || sizeof(T) == 8));
     static constexpr std::size_t L = 32 / sizeof(T);
     static constexpr unsigned full = (1u << L) - 1;
@@ -157,8 +154,7 @@ using DefaultBackend = Scalar;
 
 #endif
 
-template <class T>
-struct Lanes<T, Scalar> {
+template <class T> struct Lanes<T, Scalar> {
     static_assert(std::is_integral_v<T> && (sizeof(T) == 4 || sizeof(T) == 8));
     static constexpr std::size_t L = 32 / sizeof(T);
     static constexpr unsigned full = (1u << L) - 1;
@@ -192,9 +188,7 @@ struct Lanes<T, Scalar> {
         return mask;
     }
 
-    static unsigned in_range(std::size_t len) noexcept {
-        return len >= L ? full : (1u << len) - 1;
-    }
+    static unsigned in_range(std::size_t len) noexcept { return len >= L ? full : (1u << len) - 1; }
 
     // Writes all L slots like the vector store, so callers see the same spare-capacity use.
     static void compress_store(T* dst, const Simd& value, unsigned drop) noexcept {
@@ -213,8 +207,7 @@ struct Lanes<T, Scalar> {
 // Mirrors the `SimdElem` partition kernels in SPLIT_PIVOTS_CUR_AND_NEXT mode: lanes below
 // the pivot, plus pivot-equal lanes selected by `EQUAL_MASKS[pivot_pos % 16]`, go to
 // `next`; the rest stay in `cur`.
-template <class T, class Backend>
-struct SimdElem : Lanes<T, Backend> {
+template <class T, class Backend> struct SimdElem : Lanes<T, Backend> {
     using V = Lanes<T, Backend>;
     using Simd = typename V::Simd;
     using V::full;
@@ -226,9 +219,9 @@ struct SimdElem : Lanes<T, Backend> {
         return (lt | (eq & static_cast<unsigned>(equal_masks[pivot_pos % 16]))) & full;
     }
 
-    static void partition_fast(Simd vals, Simd threshold, std::size_t pivot_pos,
-                               T* cur_write, std::size_t& cur_write_cnt,
-                               T* next_write, std::size_t& next_write_cnt) noexcept {
+    static void partition_fast(Simd vals, Simd threshold, std::size_t pivot_pos, T* cur_write,
+                               std::size_t& cur_write_cnt, T* next_write,
+                               std::size_t& next_write_cnt) noexcept {
         const auto small = small_mask(vals, threshold, pivot_pos);
         const auto large = small ^ full;
         V::compress_store(cur_write + cur_write_cnt, vals, small);
@@ -238,8 +231,8 @@ struct SimdElem : Lanes<T, Backend> {
     }
 
     static void partition_slow(Simd vals, std::size_t len, Simd threshold, std::size_t pivot_pos,
-                               T* cur_write, std::size_t& cur_write_cnt,
-                               T* next_write, std::size_t& next_write_cnt) noexcept {
+                               T* cur_write, std::size_t& cur_write_cnt, T* next_write,
+                               std::size_t& next_write_cnt) noexcept {
         const auto in_range = V::in_range(len);
         const auto small = small_mask(vals, threshold, pivot_pos) & in_range;
         const auto large = (small ^ full) & in_range;
@@ -251,7 +244,8 @@ struct SimdElem : Lanes<T, Backend> {
 
     static void partition_fast_kv(Simd keys, Simd vals, Simd threshold, std::size_t pivot_pos,
                                   T* cur_keys, T* cur_vals, std::size_t& cur_write_cnt,
-                                  T* next_keys, T* next_vals, std::size_t& next_write_cnt) noexcept {
+                                  T* next_keys, T* next_vals,
+                                  std::size_t& next_write_cnt) noexcept {
         const auto small = small_mask(keys, threshold, pivot_pos);
         const auto large = small ^ full;
         V::compress_store(cur_keys + cur_write_cnt, keys, small);
@@ -281,8 +275,7 @@ struct SimdElem : Lanes<T, Backend> {
 // `partition_point(|p| t < p)` over the decreasing pivots. Up to 64 pivots it uses
 // full-register loads that may read past `len`; the heap keeps 2 * L spare slots so those
 // reads stay inside the allocation.
-template <class T, class Backend>
-std::size_t push_position(const Vec<T>& pivots, T t) noexcept {
+template <class T, class Backend> std::size_t push_position(const Vec<T>& pivots, T t) noexcept {
     using S = SimdElem<T, Backend>;
     const auto len = pivots.size();
     if (len <= 64) {
