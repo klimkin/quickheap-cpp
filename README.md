@@ -1,5 +1,7 @@
 # Quickheap C++
 
+[![CI](https://github.com/klimkin/quickheap-cpp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/klimkin/quickheap-cpp/actions/workflows/ci.yml)
+
 Pure C++ port of [quickheap](https://github.com/RagnarGrootKoerkamp/quickheap).
 Descending pivots divide reusable buckets. Pop partitions oversized minimum
 buckets, then sorts at most 16 entries. The algorithm mirrors upstream Rust
