@@ -143,7 +143,7 @@ class Summary:
 
 
 def read_results(sources, fixtures, protocol, profile="controlled-operations"):
-    groups, policies, schedule, inputs, trial_digests = {}, {}, set(), [], {}
+    groups, policies, schedules, inputs, trial_digests = {}, {}, {}, [], {}
     for source in sorted(set(sources), key=str):
         raw = source.read_bytes()
         inputs.append({"source": str(source), "sha256": sha256(raw), "raw": raw})
@@ -211,7 +211,7 @@ def read_results(sources, fixtures, protocol, profile="controlled-operations"):
                     raise ValueError("repeat index outside declared schedule")
                 if original and (repeats, warmup) != (3, 1):
                     raise ValueError("original profile requires three repeats and one warmup")
-                schedule.add((repeats, warmup))
+                schedules.setdefault(digest, set()).add((repeats, warmup))
                 reservation = row["reservation"]
                 allowed_reserves = ("reserve:1048576", "reserve:268435456") if original else ()
                 if reservation != "backend-default" and reservation not in allowed_reserves and not (
@@ -257,8 +257,9 @@ def read_results(sources, fixtures, protocol, profile="controlled-operations"):
                 raise ValueError(f"{source}:{line}: {error}") from None
         if not rows:
             raise ValueError(f"{source}: no measured rows")
-    if len(schedule) != 1:
-        raise ValueError("inconsistent repeats or warmup across input results")
+    # Controlled runs plan trials per fixture; original runs key every row under the empty digest.
+    if not schedules or any(len(schedule) != 1 for schedule in schedules.values()):
+        raise ValueError("inconsistent repeats or warmup within one fixture or original profile")
     summaries = []
     for (identity, metric), values in sorted(groups.items()):
         if set(values) != set(range(identity.repeats)):
